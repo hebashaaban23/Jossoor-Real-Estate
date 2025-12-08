@@ -1,0 +1,150 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                   CRM MOBILE API - CALLABLE ENDPOINTS                        ║
+║                         All Fixes Applied ✅                                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+BASE URL: https://your-site.com/api/method/crm.api.mobile_api
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📍 ENDPOINT LIST (7 Total)
+
+POST   /api/method/crm.api.mobile_api.create_task        
+       ├─ Required: task_type (Meeting|Property Showing|Call)
+       ├─ Optional: title, status, priority, start_date, description, assigned_to, due_date
+       └─ Returns: Compact task JSON
+
+POST   /api/method/crm.api.mobile_api.edit_task          
+       ├─ Required: name
+       ├─ Optional: title, status, priority, start_date, task_type, description, assigned_to, due_date
+       └─ Returns: Updated compact task JSON
+
+POST   /api/method/crm.api.mobile_api.delete_task        
+       ├─ Required: name
+       └─ Returns: {"ok": true}
+
+POST   /api/method/crm.api.mobile_api.update_status      
+       ├─ Required: name, status
+       └─ Returns: Updated compact task JSON
+
+GET    /api/method/crm.api.mobile_api.filter_tasks       
+       ├─ Optional: date_from, date_to, importance, status, limit, offset, order_by
+       ├─ ✅ FIX: Now uses list-based filters (both date_from AND date_to apply)
+       └─ Returns: {"data": [...]}
+
+GET    /api/method/crm.api.mobile_api.home_tasks         
+       ├─ Optional: limit (default: 5)
+       └─ Returns: {"today": [...], "limit": N}
+
+GET    /api/method/crm.api.mobile_api.main_page_buckets  
+       ├─ Optional: min_each (default: 5)
+       └─ Returns: {"today": [...], "late": [...], "upcoming": [...], "min_each": N}
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔐 AUTHENTICATION
+
+All endpoints require:
+  • Standard Frappe session authentication
+  • Login at: POST /api/method/login
+  • Include session cookies in all requests
+  • Required roles: Sales User OR Sales Manager
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📦 RESPONSE FORMAT (Compact & Consistent)
+
+Core fields (always included):
+  • name          - Task ID
+  • title         - Task title (or derived from description)
+  • status        - Task status
+  • priority      - Task priority (Low/Medium/High)
+  • start_date    - Task start date (YYYY-MM-DD)
+  • modified      - Last modified timestamp
+
+Optional fields (included if present on doctype):
+  • due_date      - Due date/time (YYYY-MM-DD HH:MM:SS)
+  • assigned_to   - Assigned user email
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ FIXES APPLIED
+
+1. Whitelist Decorators ✅
+   • All endpoints: @frappe.whitelist(allow_guest=False, methods=[...])
+   • POST methods: create_task, edit_task, delete_task, update_status
+   • GET methods: filter_tasks, home_tasks, main_page_buckets
+
+2. Filter Logic Fixed ✅
+   • filter_tasks() now uses LIST of conditions (not dict)
+   • Both date_from AND date_to now apply correctly
+   • Example: ?date_from=2025-12-01&date_to=2025-12-31 (both work!)
+
+3. Field Safety ✅
+   • Added _safe_fields() helper function
+   • Only queries fields that exist on CRM Task doctype
+   • No more KeyErrors for missing fields (assigned_to, due_date)
+
+4. Response Consistency ✅
+   • Core fields always included
+   • Optional fields added only if present
+   • Safe field access using .get() and hasattr()
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🧪 QUICK TEST COMMANDS
+
+# Login and save cookies
+curl -X POST https://trust.jossoor.org/api/method/login \
+  -d "usr=admin@example.com&pwd=password" \
+  -c cookies.txt
+
+# Test home tasks (should return 200 with compact tasks)
+curl -s "https://trust.jossoor.org/api/method/crm.api.mobile_api.home_tasks?limit=5" \
+  -b cookies.txt | jq .
+
+# Test filter with date range (both dates should apply)
+curl -s "https://trust.jossoor.org/api/method/crm.api.mobile_api.filter_tasks?date_from=2025-12-01&date_to=2025-12-31&limit=10" \
+  -b cookies.txt | jq .
+
+# Test filter with multiple parameters
+curl -s "https://trust.jossoor.org/api/method/crm.api.mobile_api.filter_tasks?date_from=2025-12-01&importance=High,Medium&status=Todo,In%20Progress&limit=20" \
+  -b cookies.txt | jq .
+
+# Test main page buckets
+curl -s "https://trust.jossoor.org/api/method/crm.api.mobile_api.main_page_buckets?min_each=5" \
+  -b cookies.txt | jq .
+
+# Create a task
+curl -X POST "https://trust.jossoor.org/api/method/crm.api.mobile_api.create_task" \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{"task_type":"Call","title":"Test Task","priority":"High","status":"Todo"}'
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📊 STATUS SUMMARY
+
+✅ All endpoints properly whitelisted
+✅ Filter logic fixed (list-based filters)
+✅ Field safety implemented (_safe_fields helper)
+✅ Response format consistent
+✅ No linter errors
+✅ Ready for production testing
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📖 DOCUMENTATION
+
+For complete documentation, see:
+  • MOBILE_API_README.md - Main documentation
+  • API_ENDPOINTS.md - Detailed endpoint reference
+  • MOBILE_API_FIXES_APPLIED.md - Complete list of fixes
+  • MOBILE_API_QUICK_REFERENCE.md - Quick reference card
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Version: 1.1 (Fixed)
+Date: December 3, 2025
+Status: READY ✅
+

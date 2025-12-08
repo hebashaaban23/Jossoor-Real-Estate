@@ -1,0 +1,349 @@
+<template>
+  <ListView
+    :class="$attrs.class"
+    :columns="columns"
+    :rows="rows"
+    :options="{
+      selectable: options.selectable,
+      showTooltip: options.showTooltip,
+      resizeColumn: options.resizeColumn,
+    }"
+    row-key="name"
+    @update:selections="(selections) => emit('selectionsChanged', selections)"
+  >
+    <ListHeader class="sm:mx-5 mx-3" @columnWidthUpdated="emit('columnWidthUpdated')">
+      <ListHeaderItem
+        v-for="column in columns"
+        :key="column.key"
+        :item="column"
+        @columnWidthUpdated="emit('columnWidthUpdated', column)"
+      >
+        <Button
+          v-if="column.key == '_liked_by'"
+          variant="ghosted"
+          class="!h-4"
+          :class="isLikeFilterApplied ? 'fill-red-500' : 'fill-white'"
+          @click="() => emit('applyLikeFilter')"
+        >
+          <HeartIcon class="h-4 w-4" />
+        </Button>
+      </ListHeaderItem>
+    </ListHeader>
+
+    <ListRows :rows="rows" v-slot="{ idx, column, item, row }" doctype="CRM Lead">
+      <!-- المكلّفين -->
+      <div
+        v-if="column.key === '_assign'"
+        class="h-full w-full"
+        :class="row.original_lead ? 'highlight-yellow' : ''"
+      >
+        <MultipleAvatar
+          :avatars="item"
+          size="sm"
+          @click="
+            (event) =>
+              emit('applyFilter', { event, idx, column, item, firstColumn: columns[0] })
+          "
+        />
+      </div>
+
+      <!-- عمود آخر كومنت (Quick form) -->
+      <div
+        v-else-if="column.key === 'last_comment'"
+        class="h-full w-full"
+        :class="row.original_lead ? 'highlight-yellow' : ''"
+        @click.stop
+        @mousedown.stop
+        @mouseup.stop
+        @dblclick.stop
+      >
+        <LeadCommentsQuick :leadName="row.name" />
+      </div>
+
+      <!-- باقي الأعمدة -->
+      <div
+        v-else
+        class="h-full w-full"
+        :class="row.original_lead ? 'highlight-yellow' : ''"
+      >
+        <ListRowItem :item="item" :align="column.align">
+          <template #prefix>
+            <div v-if="column.key === 'status'">
+              <IndicatorIcon :class="item.color" />
+            </div>
+            <div v-else-if="column.key === 'lead_name'">
+              <Avatar
+                v-if="item.label"
+                class="flex items-center"
+                :image="item.image"
+                :label="item.image_label"
+                size="sm"
+              />
+            </div>
+            <div v-else-if="column.key === 'lead_owner'">
+              <Avatar
+                v-if="item.full_name"
+                class="flex items-center"
+                :image="item.user_image"
+                :label="item.full_name"
+                size="sm"
+              />
+            </div>
+          </template>
+
+          <template #default="{ label }">
+            <!-- اجعل فتح صفحة الـ Lead على الاسم فقط -->
+            <div v-if="column.key === 'lead_name'">
+              <RouterLink
+                class="text-ink-blue-7 hover:underline"
+                :to="{
+                  name: 'Lead',
+                  params: { leadId: row.name },
+                  query: { view: route.query.view, viewType: route.params.viewType },
+                }"
+                @click.stop
+              >
+                {{ item?.label || label }}
+              </RouterLink>
+            </div>
+
+            <!-- الموبايل + اتصال + واتساب -->
+            <div
+              v-else-if="column.key === 'mobile_no'"
+              class="flex items-center justify-between gap-2"
+            >
+              <div class="flex items-center gap-2 min-w-0">
+                <span>
+                  {{ typeof item === 'object' && item ? item.label : item }}
+                </span>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <Button
+                  v-if="getMobile(row)"
+                  variant="ghost"
+                  class="!p-1"
+                  @click.stop="makeCall(getMobile(row))"
+                  :title="__('Call')"
+                  aria-label="Call"
+                >
+                  <PhoneIcon class="h-4 w-4" />
+                </Button>
+                <Button
+                  v-if="getMobile(row)"
+                  variant="ghost"
+                  class="!p-1"
+                  @click.stop="openWhatsApp(getMobile(row))"
+                  :title="__('Open WhatsApp')"
+                  aria-label="Open WhatsApp"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
+                    />
+                  </svg>
+                </Button>
+              </div>
+            </div>
+
+            <!-- تواريخ -->
+            <div
+              v-else-if="
+                ['modified','creation','first_response_time','first_responded_on','response_by'].includes(column.key)
+              "
+              class="truncate text-base"
+              @click="
+                (event) =>
+                  emit('applyFilter', {
+                    event,
+                    idx,
+                    column,
+                    item,
+                    firstColumn: columns[0],
+                  })
+              "
+            >
+              <Tooltip :text="item.label">
+                <div>{{ item.timeAgo }}</div>
+              </Tooltip>
+            </div>
+
+            <!-- لايك -->
+            <div v-else-if="column.key === '_liked_by'">
+              <Button
+                variant="ghosted"
+                :class="isLiked(item) ? 'fill-red-500' : 'fill-white'"
+                @click.stop.prevent="
+                  () => emit('likeDoc', { name: row.name, liked: isLiked(item) })
+                "
+              >
+                <HeartIcon class="h-4 w-4" />
+              </Button>
+            </div>
+
+            <!-- SLA -->
+            <div v-else-if="column.key === 'sla_status'" class="truncate text-base">
+              <Badge
+                v-if="item.value"
+                :variant="'subtle'"
+                :theme="item.color"
+                size="md"
+                :label="item.value"
+                @click="
+                  (event) =>
+                    emit('applyFilter', {
+                      event,
+                      idx,
+                      column,
+                      item,
+                      firstColumn: columns[0],
+                    })
+              "
+              />
+            </div>
+
+            <!-- Check -->
+            <div v-else-if="column.type === 'Check'">
+              <FormControl
+                type="checkbox"
+                :modelValue="item"
+                :disabled="true"
+                class="text-ink-gray-9"
+              />
+            </div>
+
+            <!-- باقي الأعمدة -->
+            <div
+              v-else
+              class="truncate text-base"
+              @click="
+                (event) =>
+                  emit('applyFilter', {
+                    event,
+                    idx,
+                    column,
+                    item,
+                    firstColumn: columns[0],
+                  })
+              "
+            >
+              {{ label }}
+            </div>
+          </template>
+        </ListRowItem>
+      </div>
+    </ListRows>
+  </ListView>
+
+  <ListFooter
+    v-if="pageLengthCount"
+    class="border-t sm:px-5 px-3 py-2"
+    v-model="pageLengthCount"
+    :options="{
+      rowCount: options.rowCount,
+      totalCount: options.totalCount,
+    }"
+    @loadMore="emit('loadMore')"
+  />
+  <ListBulkActions ref="listBulkActionsRef" v-model="list" doctype="CRM Lead" />
+</template>
+
+<script setup>
+import LeadCommentsQuick from '@/components/LeadCommentsQuick.vue'
+import HeartIcon from '@/components/Icons/HeartIcon.vue'
+import IndicatorIcon from '@/components/Icons/IndicatorIcon.vue'
+import PhoneIcon from '@/components/Icons/PhoneIcon.vue'
+import MultipleAvatar from '@/components/MultipleAvatar.vue'
+import ListBulkActions from '@/components/ListBulkActions.vue'
+import ListRows from '@/components/ListViews/ListRows.vue'
+import {
+  Avatar,
+  ListView,
+  ListHeader,
+  ListHeaderItem,
+  ListRowItem,
+  ListFooter,
+  Tooltip,
+  Button,
+  FormControl,
+  Badge,
+} from 'frappe-ui'
+import { sessionStore } from '@/stores/session'
+import { ref, computed, watch } from 'vue'
+import { useRoute, RouterLink } from 'vue-router'
+
+const props = defineProps({
+  rows: { type: Array, required: true },
+  columns: { type: Array, required: true },
+  options: {
+    type: Object,
+    default: () => ({
+      selectable: true,
+      showTooltip: true,
+      resizeColumn: false,
+      totalCount: 0,
+      rowCount: 0,
+    }),
+  },
+})
+const emit = defineEmits([
+  'loadMore',
+  'updatePageCount',
+  'columnWidthUpdated',
+  'applyFilter',
+  'applyLikeFilter',
+  'likeDoc',
+  'selectionsChanged',
+])
+
+const route = useRoute()
+const pageLengthCount = defineModel()
+const list = defineModel('list')
+
+const isLikeFilterApplied = computed(() => {
+  return list.value?.params?.filters?._liked_by ? true : false
+})
+
+const { user } = sessionStore()
+function isLiked(item) {
+  if (!item) return false
+  try {
+    const likedByMe = JSON.parse(item)
+    return likedByMe.includes(user)
+  } catch {
+    return false
+  }
+}
+
+watch(pageLengthCount, (val, old_value) => {
+  if (val === old_value) return
+  emit('updatePageCount', val)
+})
+
+const listBulkActionsRef = ref(null)
+defineExpose({
+  customListActions: computed(
+    () => listBulkActionsRef.value?.customListActions,
+  ),
+})
+
+/** Utils */
+function getMobile(row) {
+  const v = row?.mobile_no
+  return typeof v === 'object' && v !== null ? v.label : v || ''
+}
+function makeCall(number) {
+  const n = String(number || '').trim()
+  if (n) window.open(`tel:${n}`)
+}
+function openWhatsApp(number) {
+  const phone = String(number || '').replace(/\D/g, '')
+  if (phone) window.open(`https://wa.me/${phone}`, '_blank')
+}
+</script>
+
+<style scoped>
+.highlight-yellow {
+  background-color: #FFFDF4 !important;
+}
+</style>

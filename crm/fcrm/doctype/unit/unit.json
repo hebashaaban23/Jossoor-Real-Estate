@@ -1,0 +1,192 @@
+{
+ "actions": [],
+ "autoname": "field:unit_name",
+ "creation": "2025-09-03 18:51:11.190534",
+ "default_view": "List",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "unit_name",
+  "city",
+  "type",
+  "area_sqm",
+  "price",
+  "description",
+  "bedrooms",
+  "bathrooms",
+  "availability",
+  "cover_image",
+  "floor",
+  "parking",
+  "view",
+  "orientation",
+  "furnished",
+  "maintenance_fees",
+  "gallery",
+  "floor_plan",
+  "brochure",
+  "video_url",
+  "status",
+  "categories"
+ ],
+ "fields": [
+  {
+   "fieldname": "unit_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Unit Name",
+   "unique": 1
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Apartment\nVilla\nStudio\nDuplex\nTwin House\nStand Alone\nShop\nWarehouse\nLand\nPenthouse\nBuilding\nOffice\nClinic\nOther"
+  },
+  {
+   "fieldname": "area_sqm",
+   "fieldtype": "Int",
+   "label": "Area (sqm)"
+  },
+  {
+   "fieldname": "price",
+   "fieldtype": "Currency",
+   "label": "Price"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "bedrooms",
+   "fieldtype": "Int",
+   "label": "Bedrooms"
+  },
+  {
+   "fieldname": "bathrooms",
+   "fieldtype": "Int",
+   "label": "Bathrooms"
+  },
+  {
+   "fieldname": "availability",
+   "fieldtype": "Select",
+   "label": "Availability",
+   "options": "Available\nReserved\nSold"
+  },
+  {
+   "fieldname": "cover_image",
+   "fieldtype": "Attach Image",
+   "label": "Cover Image"
+  },
+  {
+   "fieldname": "floor",
+   "fieldtype": "Data",
+   "label": "Floor"
+  },
+  {
+   "fieldname": "parking",
+   "fieldtype": "Data",
+   "label": "Parking"
+  },
+  {
+   "fieldname": "view",
+   "fieldtype": "Data",
+   "label": "View"
+  },
+  {
+   "fieldname": "orientation",
+   "fieldtype": "Data",
+   "label": "Orientation"
+  },
+  {
+   "fieldname": "furnished",
+   "fieldtype": "Select",
+   "label": "Furnished",
+   "options": "Unfurnished\nSemi\nFull"
+  },
+  {
+   "fieldname": "maintenance_fees",
+   "fieldtype": "Float",
+   "label": "Maintenance Fees"
+  },
+  {
+   "fieldname": "gallery",
+   "fieldtype": "Table",
+   "label": "Gallery",
+   "options": "Project Image"
+  },
+  {
+   "fieldname": "floor_plan",
+   "fieldtype": "Attach",
+   "label": "Floor Plan"
+  },
+  {
+   "fieldname": "brochure",
+   "fieldtype": "Attach",
+   "label": "Brochure"
+  },
+  {
+   "fieldname": "video_url",
+   "fieldtype": "Data",
+   "label": "Video URL",
+   "options": "URL"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Available\nSold\nReserved"
+  },
+  {
+   "fieldname": "categories",
+   "fieldtype": "Select",
+   "label": "Categories",
+   "options": "Residential\nCommercial\nAdministrative"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-23 23:31:42.066700",
+ "modified_by": "Administrator",
+ "module": "FCRM",
+ "name": "Unit",
+ "naming_rule": "Autoincrement",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

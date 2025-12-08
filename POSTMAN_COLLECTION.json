@@ -1,0 +1,558 @@
+{
+  "info": {
+    "name": "CRM Task Mobile API",
+    "description": "Complete API collection for CRM Task management with session-based authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "crm-mobile-api-001",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://your-site.com",
+      "type": "string"
+    },
+    {
+      "key": "session_sid",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "full_name",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_task_name",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Extract cookies from response",
+                  "var cookies = pm.cookies.all();",
+                  "cookies.forEach(function(cookie) {",
+                  "    if (cookie.name === 'sid') {",
+                  "        pm.environment.set('session_sid', cookie.value);",
+                  "        pm.collectionVariables.set('session_sid', cookie.value);",
+                  "    }",
+                  "    if (cookie.name === 'user_id') {",
+                  "        pm.environment.set('user_id', cookie.value);",
+                  "        pm.collectionVariables.set('user_id', cookie.value);",
+                  "    }",
+                  "    if (cookie.name === 'full_name') {",
+                  "        pm.environment.set('full_name', cookie.value);",
+                  "        pm.collectionVariables.set('full_name', cookie.value);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "usr",
+                  "value": "user@example.com",
+                  "description": "Your Frappe username/email",
+                  "type": "text"
+                },
+                {
+                  "key": "pwd",
+                  "value": "password",
+                  "description": "Your Frappe password",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/method/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "login"]
+            },
+            "description": "Login to Frappe and obtain session cookies. The cookies will be automatically saved to collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "logout"]
+            },
+            "description": "Logout from Frappe and clear session."
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints for login/logout"
+    },
+    {
+      "name": "CRUD Operations",
+      "item": [
+        {
+          "name": "Create Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.message && jsonData.message.name) {",
+                  "    pm.collectionVariables.set('test_task_name', jsonData.message.name);",
+                  "    pm.environment.set('test_task_name', jsonData.message.name);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Task created successfully', function () {",
+                  "    pm.expect(jsonData.message).to.have.property('name');",
+                  "    pm.expect(jsonData.message).to.have.property('status');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task_type\": \"Call\",\n  \"title\": \"Follow up with client\",\n  \"priority\": \"High\",\n  \"status\": \"Todo\",\n  \"description\": \"Discuss contract terms and pricing\",\n  \"start_date\": \"2025-12-03\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.create_task",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.create_task"]
+            },
+            "description": "Create a new CRM Task. Task name will be saved to {{test_task_name}} variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{test_task_name}}\",\n  \"title\": \"Updated: Follow up with client\",\n  \"priority\": \"Medium\",\n  \"status\": \"In Progress\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.edit_task",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.edit_task"]
+            },
+            "description": "Edit an existing task. Uses {{test_task_name}} from create task."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{test_task_name}}\",\n  \"status\": \"Done\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.update_status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.update_status"]
+            },
+            "description": "Quick status update for a task."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{test_task_name}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.delete_task",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.delete_task"]
+            },
+            "description": "Delete a task. Uses {{test_task_name}} from create task."
+          },
+          "response": []
+        }
+      ],
+      "description": "Create, Read, Update, Delete operations for CRM Tasks"
+    },
+    {
+      "name": "Filtering & Search",
+      "item": [
+        {
+          "name": "Filter Tasks - All Parameters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.filter_tasks?date_from=2025-12-01&date_to=2025-12-31&importance=High,Medium&status=Todo,In Progress&limit=20&offset=0&order_by=priority desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.filter_tasks"],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "2025-12-01",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "date_to",
+                  "value": "2025-12-31",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "importance",
+                  "value": "High,Medium",
+                  "description": "Comma-separated priorities"
+                },
+                {
+                  "key": "status",
+                  "value": "Todo,In Progress",
+                  "description": "Comma-separated statuses"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Maximum results"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Skip N results"
+                },
+                {
+                  "key": "order_by",
+                  "value": "priority desc",
+                  "description": "Sort order"
+                }
+              ]
+            },
+            "description": "Filter tasks with all available parameters."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Tasks - By Date Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.filter_tasks?date_from=2025-12-01&date_to=2025-12-07",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.filter_tasks"],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "2025-12-01"
+                },
+                {
+                  "key": "date_to",
+                  "value": "2025-12-07"
+                }
+              ]
+            },
+            "description": "Filter tasks by date range only."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Tasks - By Priority",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.filter_tasks?importance=High&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.filter_tasks"],
+              "query": [
+                {
+                  "key": "importance",
+                  "value": "High"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get high priority tasks only."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Tasks - By Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.filter_tasks?status=Todo,In Progress",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.filter_tasks"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Todo,In Progress"
+                }
+              ]
+            },
+            "description": "Get active tasks (Todo and In Progress)."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Tasks - Pagination Example (Page 2)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.filter_tasks?limit=20&offset=20&order_by=modified desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.filter_tasks"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "20",
+                  "description": "Skip first 20 results (page 2)"
+                },
+                {
+                  "key": "order_by",
+                  "value": "modified desc"
+                }
+              ]
+            },
+            "description": "Pagination example: Get page 2 (skip first 20 results)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Filter and search tasks with various parameters"
+    },
+    {
+      "name": "Specialized Views",
+      "item": [
+        {
+          "name": "Home Tasks (Today Top 5)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.home_tasks?limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.home_tasks"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Number of tasks to return (default: 5)"
+                }
+              ]
+            },
+            "description": "Get today's top tasks for home screen. Returns tasks where start_date = today."
+          },
+          "response": []
+        },
+        {
+          "name": "Home Tasks (Top 10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.home_tasks?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.home_tasks"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get today's top 10 tasks."
+          },
+          "response": []
+        },
+        {
+          "name": "Main Page Buckets (5 each)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.main_page_buckets?min_each=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.main_page_buckets"],
+              "query": [
+                {
+                  "key": "min_each",
+                  "value": "5",
+                  "description": "Minimum tasks per bucket (default: 5)"
+                }
+              ]
+            },
+            "description": "Get tasks organized into today/late/upcoming buckets. Each bucket contains at least min_each tasks."
+          },
+          "response": []
+        },
+        {
+          "name": "Main Page Buckets (10 each)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{session_sid}}; user_id={{user_id}}; full_name={{full_name}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/method/crm.api.mobile_api.main_page_buckets?min_each=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "method", "crm.api.mobile_api.main_page_buckets"],
+              "query": [
+                {
+                  "key": "min_each",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get tasks organized into buckets with minimum 10 tasks each."
+          },
+          "response": []
+        }
+      ],
+      "description": "Specialized views for home screen and main page buckets"
+    }
+  ]
+}
+

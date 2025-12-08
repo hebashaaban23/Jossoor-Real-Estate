@@ -1,0 +1,404 @@
+{
+  "info": {
+    "name": "CRM OAuth API - Complete Collection",
+    "description": "Complete OAuth API test collection including token generation and all endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "variable": [
+      {
+        "key": "base_url",
+        "value": "https://trust.jossoor.org",
+        "type": "string"
+      },
+      {
+        "key": "client_id",
+        "value": "",
+        "type": "string"
+      },
+      {
+        "key": "access_token",
+        "value": "",
+        "type": "string"
+      },
+      {
+        "key": "username",
+        "value": "Administrator",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "1234",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Get OAuth Config",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.message && jsonData.message.client_id) {",
+              "        pm.collectionVariables.set('client_id', jsonData.message.client_id);",
+              "        console.log('Client ID saved: ' + jsonData.message.client_id);",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/method/crm.api.mobile_api.get_oauth_config",
+          "host": ["{{base_url}}"],
+          "path": ["api", "method", "crm.api.mobile_api.get_oauth_config"]
+        },
+        "description": "Get OAuth configuration (client_id, scope, redirect_uri). This endpoint automatically creates OAuth Client if it doesn't exist."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Get Access Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.access_token) {",
+              "        pm.collectionVariables.set('access_token', jsonData.access_token);",
+              "        console.log('Access Token saved: ' + jsonData.access_token.substring(0, 20) + '...');",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "password",
+              "type": "text"
+            },
+            {
+              "key": "username",
+              "value": "{{username}}",
+              "type": "text"
+            },
+            {
+              "key": "password",
+              "value": "{{password}}",
+              "type": "text"
+            },
+            {
+              "key": "client_id",
+              "value": "{{client_id}}",
+              "type": "text",
+              "description": "Use client_id from Get OAuth Config request"
+            },
+            {
+              "key": "scope",
+              "value": "all openid",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/method/frappe.integrations.oauth2.get_token",
+          "host": ["{{base_url}}"],
+          "path": ["api", "method", "frappe.integrations.oauth2.get_token"]
+        },
+        "description": "Get OAuth access token using password grant. Requires client_id from previous request."
+      },
+      "response": []
+    },
+    {
+      "name": "3. home_tasks",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/method/crm.api.mobile_api.home_tasks?limit=5",
+          "host": ["{{base_url}}"],
+          "path": ["api", "method", "crm.api.mobile_api.home_tasks"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        },
+        "description": "Get today's tasks. Requires access_token from Get Access Token request."
+      },
+      "response": []
+    },
+    {
+      "name": "4. filter_tasks (Page 1)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/method/crm.api.mobile_api.filter_tasks?page=1&limit=10&date_from=2025-12-01&date_to=2025-12-31&importance=High,Medium&status=Todo,In%20Progress",
+          "host": ["{{base_url}}"],
+          "path": ["api", "method", "crm.api.mobile_api.filter_tasks"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "date_from",
+              "value": "2025-12-01"
+            },
+            {
+              "key": "date_to",
+              "value": "2025-12-31"
+            },
+            {
+              "key": "importance",
+              "value": "High,Medium"
+            },
+            {
+              "key": "status",
+              "value": "Todo,In Progress"
+            }
+          ]
+        },
+        "description": "Filter tasks with pagination. Requires access_token."
+      },
+      "response": []
+    },
+    {
+      "name": "5. filter_tasks (Page 2)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/method/crm.api.mobile_api.filter_tasks?page=2&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "method", "crm.api.mobile_api.filter_tasks"],
+          "query": [
+            {
+              "key": "page",
+              "value": "2"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Get page 2 of filtered tasks. Requires access_token."
+      },
+      "response": []
+    },
+    {
+      "name": "6. main_page_buckets",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/method/crm.api.mobile_api.main_page_buckets?min_each=3",
+          "host": ["{{base_url}}"],
+          "path": ["api", "method", "crm.api.mobile_api.main_page_buckets"],
+          "query": [
+            {
+              "key": "min_each",
+              "value": "3"
+            }
+          ]
+        },
+        "description": "Get main page buckets (today, late, upcoming). Requires access_token."
+      },
+      "response": []
+    },
+    {
+      "name": "Security Tests",
+      "item": [
+        {
+          "name": "Get OAuth Config - Valid Domain (trust.jossoor.org)",
+          "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Host",
+            "value": "trust.jossoor.org",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://trust.jossoor.org/api/method/crm.api.mobile_api.get_oauth_config",
+          "protocol": "https",
+          "host": ["trust", "jossoor", "org"],
+          "path": ["api", "method", "crm.api.mobile_api.get_oauth_config"]
+        },
+        "description": "Should return client_id for valid domain"
+      },
+      "response": []
+    },
+    {
+      "name": "Get OAuth Config - facebook.com (Should Reject)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Host",
+            "value": "facebook.com",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://trust.jossoor.org/api/method/crm.api.mobile_api.get_oauth_config",
+          "protocol": "https",
+          "host": ["trust", "jossoor", "org"],
+          "path": ["api", "method", "crm.api.mobile_api.get_oauth_config"]
+        },
+        "description": "Should reject facebook.com and return ValidationError without client_id"
+      },
+      "response": []
+    },
+    {
+      "name": "Get OAuth Config - www.facebook.com (Should Reject)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Host",
+            "value": "www.facebook.com",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://trust.jossoor.org/api/method/crm.api.mobile_api.get_oauth_config",
+          "protocol": "https",
+          "host": ["trust", "jossoor", "org"],
+          "path": ["api", "method", "crm.api.mobile_api.get_oauth_config"]
+        },
+        "description": "Should reject www.facebook.com and return ValidationError"
+      },
+      "response": []
+    },
+    {
+      "name": "Get OAuth Config - X-Forwarded-Host (facebook.com)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Forwarded-Host",
+            "value": "facebook.com",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://trust.jossoor.org/api/method/crm.api.mobile_api.get_oauth_config",
+          "protocol": "https",
+          "host": ["trust", "jossoor", "org"],
+          "path": ["api", "method", "crm.api.mobile_api.get_oauth_config"]
+        },
+        "description": "Test with X-Forwarded-Host header (used behind proxy). Should reject."
+      },
+      "response": []
+    },
+    {
+      "name": "Test Host Validation - facebook.com",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://trust.jossoor.org/api/method/crm.api.mobile_api.test_host_validation?test_host=facebook.com&expected_result=reject",
+          "protocol": "https",
+          "host": ["trust", "jossoor", "org"],
+          "path": ["api", "method", "crm.api.mobile_api.test_host_validation"],
+          "query": [
+            {
+              "key": "test_host",
+              "value": "facebook.com",
+              "description": "Host to test"
+            },
+            {
+              "key": "expected_result",
+              "value": "reject",
+              "description": "Expected result: 'allow' or 'reject'"
+            }
+          ]
+        },
+        "description": "Test function to verify Host validation. Should return PASSED status."
+      },
+      "response": []
+    },
+    {
+      "name": "Test Host Validation - trust.jossoor.org",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://trust.jossoor.org/api/method/crm.api.mobile_api.test_host_validation?test_host=trust.jossoor.org&expected_result=allow",
+          "protocol": "https",
+          "host": ["trust", "jossoor", "org"],
+          "path": ["api", "method", "crm.api.mobile_api.test_host_validation"],
+          "query": [
+            {
+              "key": "test_host",
+              "value": "trust.jossoor.org"
+            },
+            {
+              "key": "expected_result",
+              "value": "allow"
+            }
+          ]
+        },
+        "description": "Test function for valid domain. Should return PASSED status."
+      },
+      "response": []
+        }
+      ]
+    }
+  ]
+}
+

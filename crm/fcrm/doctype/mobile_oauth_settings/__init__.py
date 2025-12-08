@@ -1,0 +1,2 @@
+# Mobile OAuth Settings DocType
+

@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-08-07 16:52:19.340779",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property_preference_details_section",
+  "column_break_itsa",
+  "property_usage",
+  "property_type",
+  "space",
+  "budget",
+  "payment",
+  "created_on",
+  "note"
+ ],
+ "fields": [
+  {
+   "fieldname": "property_preference_details_section",
+   "fieldtype": "Section Break",
+   "label": "Property Preference Details"
+  },
+  {
+   "columns": 1,
+   "fieldname": "property_usage",
+   "fieldtype": "Select",
+   "label": " Property Usage\u2028",
+   "options": "Residential\nCommercial\nAdministrative"
+  },
+  {
+   "columns": 1,
+   "fieldname": "property_type",
+   "fieldtype": "Select",
+   "label": "Property Type",
+   "options": "Appartment\nVilla\nStudio\nDuplex\nShop\nWarehouse\nBuilding\nOffice"
+  },
+  {
+   "columns": 1,
+   "description": "m\u00b2",
+   "fieldname": "space",
+   "fieldtype": "Float",
+   "label": "Space",
+   "placeholder": "m\u00b2"
+  },
+  {
+   "fieldname": "budget",
+   "fieldtype": "Float",
+   "label": "Budget"
+  },
+  {
+   "fieldname": "payment",
+   "fieldtype": "Select",
+   "label": "Payment",
+   "options": "Cash\nPaypal\nVisa"
+  },
+  {
+   "fieldname": "created_on",
+   "fieldtype": "Datetime",
+   "label": "Created On",
+   "set_only_once": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "column_break_itsa",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-08-21 15:58:58.838805",
+ "modified_by": "Administrator",
+ "module": "FCRM",
+ "name": "Property Preference",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

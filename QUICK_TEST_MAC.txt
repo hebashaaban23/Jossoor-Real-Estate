@@ -1,0 +1,122 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║         🧪 Quick Test: كل الـ APIs على Mac في 3 دقائق            ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│ ⚡ One-Liner: اختبر كل شيء بأمر واحد (انسخ والصق)                 │
+└───────────────────────────────────────────────────────────────────┘
+
+TOKEN=$(curl -sS -X POST "https://trust.jossoor.org/api/method/frappe.integrations.oauth2.get_token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&username=Administrator&password=1234&client_id=3rcioodn8t&scope=all openid" | jq -r '.access_token') && echo "Token: ${TOKEN:0:30}..." && echo "" && echo "1. home_tasks:" && curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.home_tasks?limit=3" -H "Authorization: Bearer $TOKEN" | jq '.message.today | length' && echo "2. filter_tasks:" && curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.filter_tasks?limit=3" -H "Authorization: Bearer $TOKEN" | jq '.message.data | length' && echo "3. main_page_buckets:" && curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.main_page_buckets" -H "Authorization: Bearer $TOKEN" | jq '.message | keys'
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│ 📋 Step-by-Step: خطوة بخطوة                                        │
+└───────────────────────────────────────────────────────────────────┘
+
+# 1. Get Token
+TOKEN=$(curl -sS -X POST "https://trust.jossoor.org/api/method/frappe.integrations.oauth2.get_token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&username=Administrator&password=1234&client_id=3rcioodn8t&scope=all openid" | jq -r '.access_token')
+
+# 2. Test home_tasks
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.home_tasks?limit=5" -H "Authorization: Bearer $TOKEN" | jq .
+
+# 3. Test filter_tasks
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.filter_tasks?limit=5" -H "Authorization: Bearer $TOKEN" | jq .
+
+# 4. Test main_page_buckets
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.main_page_buckets" -H "Authorization: Bearer $TOKEN" | jq .
+
+# 5. Create Task
+curl -sS -X POST "https://trust.jossoor.org/api/method/crm.api.mobile_api.create_task" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"title":"Test","task_type":"General","priority":"High"}' | jq .
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│ ⚠️  Troubleshooting: إذا OAuth فشل                                 │
+└───────────────────────────────────────────────────────────────────┘
+
+# امسح DNS Cache
+sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
+
+# OR: استخدم Session Cookies
+curl -sS -X POST "https://trust.jossoor.org/api/method/login" -H "Content-Type: application/x-www-form-urlencoded" -d "usr=Administrator&pwd=1234" -c cookies.txt | jq .
+
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.home_tasks?limit=5" -b cookies.txt | jq .
+
+# OR: جرّب test user
+TOKEN=$(curl -sS -X POST "https://trust.jossoor.org/api/method/frappe.integrations.oauth2.get_token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&username=test@trust.com&password=test1234&client_id=3rcioodn8t&scope=all openid" | jq -r '.access_token')
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│ 📁 الملفات المتوفرة                                               │
+└───────────────────────────────────────────────────────────────────┘
+
+✅ test_all_apis_mac.sh
+   → Script تلقائي كامل (300 سطر) يختبر كل شيء بألوان
+
+✅ MAC_TEST_COMMANDS.txt
+   → كل الأوامر جاهزة copy/paste
+
+✅ FLUTTER_OAUTH_HANDOVER_AR.md
+   → دليل كامل للمطور Flutter (765 سطر)
+
+✅ QUICK_TEST_MAC.txt (هذا الملف)
+   → ملخص سريع
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│ 🎯 الـ Endpoints المتاحة (7 APIs)                                 │
+└───────────────────────────────────────────────────────────────────┘
+
+1. GET  home_tasks           → Top 5 tasks for today
+2. GET  filter_tasks         → Filter by date/priority/status
+3. GET  main_page_buckets    → Today/Late/Upcoming buckets
+4. POST create_task          → Create new task
+5. POST edit_task            → Edit existing task
+6. POST update_status        → Update task status
+7. POST delete_task          → Delete task
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│ 🔑 Credentials                                                     │
+└───────────────────────────────────────────────────────────────────┘
+
+Trust.com:
+  Base:      https://trust.jossoor.org
+  Client ID: 3rcioodn8t
+  User 1:    Administrator / 1234
+  User 2:    test@trust.com / test1234
+
+Benchmark.com:
+  Base:      https://benchmark.jossoor.org
+  Client ID: da2f1j4l9f
+  User:      Administrator / 1234
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│ 📊 Expected Output (Success)                                      │
+└───────────────────────────────────────────────────────────────────┘
+
+Token: eyJ0eXAiOiJKV1QiLCJhbGciOiJI...
+
+1. home_tasks: 3
+2. filter_tasks: 5
+3. main_page_buckets: ["today", "late", "upcoming"]
+
+✅ All APIs tested!
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│ 🚀 Next Steps                                                     │
+└───────────────────────────────────────────────────────────────────┘
+
+1. جرّب الـ One-Liner السريع أولاً
+2. إذا شغال → اختبر الـ POST endpoints (create/edit/delete)
+3. إذا OAuth فشل → جرّب Session Cookies
+4. سلّم FLUTTER_OAUTH_HANDOVER_AR.md للمطور
+
+╔═══════════════════════════════════════════════════════════════════╗
+║                         ✅ Done! Have Fun! 🎉                     ║
+╚═══════════════════════════════════════════════════════════════════╝
+

@@ -1,0 +1,58 @@
+.
+|-- API_ENDPOINTS.md
+|-- DASHBOARD_CHANGES.md
+|-- DELIVERY_COMPLETE.md
+|-- DYNAMIC_DASHBOARD_README.md
+|-- FLUTTER_HANDOVER.md
+|-- LICENSE
+|-- MOBILE_API_FILE_TREE.txt
+|-- MOBILE_API_INDEX.md
+|-- MOBILE_API_QUICK_REFERENCE.md
+|-- MOBILE_API_README.md
+|-- MOBILE_API_START_HERE.md
+|-- MOBILE_API_SUMMARY.md
+|-- POSTMAN_COLLECTION.json
+|-- QA_CHECKLIST.md
+|-- README.md
+|-- README_DASHBOARD_UPDATE.md
+|-- REFRESH_INSTRUCTIONS.md
+|-- SOLUTION_SUMMARY.md
+|-- add_delayed_field_to_all_sites.sh
+|-- apply_dashboard_changes.sh
+|-- apply_to_all_sites.sh
+|-- crm
+|   |-- __init__.py
+|   |-- api
+|   |-- config
+|   |-- crowdin.yml
+|   |-- demo_seed.py
+|   |-- duplicate_lead.py
+|   |-- fcrm
+|   |-- fcrm_upsert_saved_filter.py
+|   |-- fixtures
+|   |-- hooks.py
+|   |-- hot_leads.py
+|   |-- install.py
+|   |-- integrations
+|   |-- locale
+|   |-- modules.txt
+|   |-- overrides
+|   |-- patches
+|   |-- patches.txt
+|   |-- public
+|   |-- reminder_runner.py
+|   |-- report
+|   |-- templates
+|   |-- uninstall.py
+|   |-- utils
+|   `-- www
+|-- crowdin.yml
+|-- force_update_all_sites.sh
+|-- package.json
+|-- pyproject.toml
+|-- test_dashboard.html
+|-- test_mobile_api.py
+|-- update_dashboard.py
+`-- yarn.lock
+
+15 directories, 41 files

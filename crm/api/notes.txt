@@ -1,0 +1,58 @@
+# apps/crm/crm/api/notes.py
+import frappe
+
+@frappe.whitelist()
+def get_notes(reference_doctype: str, reference_name: str, limit: int = 200):
+    """Return notes linked to a document via Note.links (child table) or Dynamic Link.
+    Always include 'content' so the frontend NoteArea can render.
+    """
+    if not reference_doctype or not reference_name:
+        return []
+
+    # 1) حاول تجيب الأسماء من Dynamic Link (موثوقة وسريعة)
+    parents = frappe.get_all(
+        "Dynamic Link",
+        filters={
+            "parenttype": "Note",
+            "link_doctype": reference_doctype,
+            "link_name": reference_name,
+        },
+        pluck="parent",
+        limit=limit,
+    )
+
+    names = set(parents or [])
+
+    # 2) حاول كمان child table "links" جوه Note ( fallback موازي )
+    # مفيش way مباشرة بفلاتر مرکبة على child في get_all Note،
+    # فهنا بنسحب من Child Doctype مباشرة.
+    link_rows = frappe.get_all(
+        "Note Link",  # اسم Child Doctype الافتراضي لحقل links في Note (قد يكون "Note Link" في النسخ الحديثة)
+        filters={
+            "link_doctype": reference_doctype,
+            "link_name": reference_name,
+            "parenttype": "Note",
+        },
+        pluck="parent",
+        limit=limit,
+    )
+    names.update(link_rows or [])
+
+    if not names:
+        return []
+
+    notes = frappe.get_all(
+        "Note",
+        filters={"name": ["in", list(names)]},
+        fields=["name", "title", "public", "owner", "creation", "modified", "content", "status"],
+        limit=limit,
+        order_by="modified desc",
+    )
+
+    # تأكد من وجود content لأي نوت قديمة
+    for n in notes:
+        n["content"] = n.get("content") or n.get("description") or n.get("notes") or ""
+
+    # ترتيب موحد (الأحدث أولاً)
+    notes.sort(key=lambda r: r.get("modified") or r.get("creation") or "", reverse=True)
+    return notes

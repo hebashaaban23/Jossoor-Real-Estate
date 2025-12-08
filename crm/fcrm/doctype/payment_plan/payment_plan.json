@@ -1,0 +1,331 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-08-16 15:06:59.520153",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "lead_and_plan_section",
+  "link_doctype",
+  "link_name",
+  "lead",
+  "plan_name",
+  "notes",
+  "unit_name",
+  "project_name",
+  "unit_pricing_setup_section",
+  "area",
+  "price_per_m2",
+  "years",
+  "has_garage",
+  "garage_price",
+  "has_clubhouse",
+  "clubhouse_price",
+  "has_maintainance",
+  "maintenance_fee",
+  "has_garden",
+  "garden_price",
+  "has_roof",
+  "roof_price",
+  "has_pool",
+  "pool_price",
+  "total_price",
+  "down_payment_section",
+  "split_downpayment",
+  "downpayment_percent",
+  "downpayment_date",
+  "dp1_percent",
+  "dp1_date",
+  "dp2_percent",
+  "dp2_date",
+  "total_downpayment_percent",
+  "total_downpayment_value",
+  "installments_section",
+  "frequency",
+  "start_date",
+  "installment_type",
+  "child_tables_section",
+  "yearly_payments",
+  "manual_years",
+  "schedule"
+ ],
+ "fields": [
+  {
+   "fieldname": "lead_and_plan_section",
+   "fieldtype": "Section Break",
+   "label": "Lead and Plan"
+  },
+  {
+   "fieldname": "link_doctype",
+   "fieldtype": "Link",
+   "label": "Linked DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "link_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Linked Name",
+   "options": "link_doctype"
+  },
+  {
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "label": "Lead",
+   "options": "CRM Lead"
+  },
+  {
+   "fieldname": "plan_name",
+   "fieldtype": "Data",
+   "label": "Plan Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "unit_pricing_setup_section",
+   "fieldtype": "Section Break",
+   "label": "Unit Pricing Setup"
+  },
+  {
+   "fieldname": "area",
+   "fieldtype": "Float",
+   "label": "Area (m\u00b2)",
+   "precision": "2"
+  },
+  {
+   "fieldname": "price_per_m2",
+   "fieldtype": "Currency",
+   "label": "Price / m\u00b2",
+   "options": "EGP"
+  },
+  {
+   "fieldname": "years",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Years of Installments",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "has_garage",
+   "fieldtype": "Check",
+   "label": "Include Garage"
+  },
+  {
+   "fieldname": "garage_price",
+   "fieldtype": "Currency",
+   "label": "Garage Price",
+   "options": "depends_on=eval:doc.has_garage==1"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_clubhouse",
+   "fieldtype": "Check",
+   "label": "Include Clubhouse"
+  },
+  {
+   "fieldname": "clubhouse_price",
+   "fieldtype": "Currency",
+   "label": "Clubhouse Price",
+   "options": "depends_on=eval:doc.has_clubhouse==1"
+  },
+  {
+   "fieldname": "total_price",
+   "fieldtype": "Currency",
+   "label": "Total Price",
+   "options": "Read Only (we can compute in Validate)"
+  },
+  {
+   "fieldname": "down_payment_section",
+   "fieldtype": "Section Break",
+   "label": "Down Payment"
+  },
+  {
+   "default": "0",
+   "fieldname": "split_downpayment",
+   "fieldtype": "Check",
+   "label": "Split Down Payment"
+  },
+  {
+   "fieldname": "downpayment_percent",
+   "fieldtype": "Percent",
+   "label": "Down Payment (%)",
+   "options": "depends_on=eval:doc.split_downpayment!=1"
+  },
+  {
+   "fieldname": "downpayment_date",
+   "fieldtype": "Date",
+   "label": "Down Payment Date",
+   "options": "depends_on=eval:doc.split_downpayment!=1"
+  },
+  {
+   "fieldname": "dp1_percent",
+   "fieldtype": "Percent",
+   "label": "DP1 (%)",
+   "options": "depends_on=eval:doc.split_downpayment==1"
+  },
+  {
+   "fieldname": "dp1_date",
+   "fieldtype": "Date",
+   "label": "DP1 Date",
+   "options": "depends_on=eval:doc.split_downpayment==1"
+  },
+  {
+   "fieldname": "dp2_percent",
+   "fieldtype": "Percent",
+   "label": "DP2 (%)",
+   "options": "depends_on=eval:doc.split_downpayment==1"
+  },
+  {
+   "fieldname": "dp2_date",
+   "fieldtype": "Date",
+   "label": "DP2 Date",
+   "options": "depends_on=eval:doc.split_downpayment==1"
+  },
+  {
+   "fieldname": "total_downpayment_percent",
+   "fieldtype": "Percent",
+   "label": "Total DP (%)",
+   "options": "Read Only"
+  },
+  {
+   "fieldname": "total_downpayment_value",
+   "fieldtype": "Currency",
+   "label": "Total DP (Value)",
+   "options": "Read Only"
+  },
+  {
+   "fieldname": "installments_section",
+   "fieldtype": "Section Break",
+   "label": "Installments"
+  },
+  {
+   "fieldname": "frequency",
+   "fieldtype": "Select",
+   "label": "Frequency",
+   "options": "Monthly\nQuarterly\nHalf Yearly"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "options": "first installment"
+  },
+  {
+   "fieldname": "installment_type",
+   "fieldtype": "Select",
+   "label": "Installment Type",
+   "options": "Equal\nManual"
+  },
+  {
+   "fieldname": "child_tables_section",
+   "fieldtype": "Section Break",
+   "label": "Child Tables"
+  },
+  {
+   "fieldname": "yearly_payments",
+   "fieldtype": "Table",
+   "label": "Yearly Payments",
+   "options": "Payment Plan Yearly Payment"
+  },
+  {
+   "fieldname": "manual_years",
+   "fieldtype": "Table",
+   "label": "Manual Per-Installment (by Year)",
+   "options": "Payment Plan Manual Year"
+  },
+  {
+   "fieldname": "schedule",
+   "fieldtype": "Table",
+   "label": "Schedule",
+   "options": "Payment Plan Schedule Item"
+  },
+  {
+   "fieldname": "unit_name",
+   "fieldtype": "Data",
+   "label": "Unit Name"
+  },
+  {
+   "fieldname": "project_name",
+   "fieldtype": "Data",
+   "label": "Project Name"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_maintainance",
+   "fieldtype": "Check",
+   "label": "Has Maintainance"
+  },
+  {
+   "fieldname": "maintenance_fee",
+   "fieldtype": "Currency",
+   "label": "Maintenance Fee",
+   "options": "depends_on=eval:doc.has_maintenance==1"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_garden",
+   "fieldtype": "Check",
+   "label": "Has Garden"
+  },
+  {
+   "fieldname": "garden_price",
+   "fieldtype": "Currency",
+   "label": "Garden Price",
+   "options": "depends_on=eval:doc.has_garden==1"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_roof",
+   "fieldtype": "Check",
+   "label": "Has Roof"
+  },
+  {
+   "fieldname": "roof_price",
+   "fieldtype": "Currency",
+   "label": "Roof Price",
+   "options": "depends_on=eval:doc.has_roof==1"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_pool",
+   "fieldtype": "Check",
+   "label": "Has Pool"
+  },
+  {
+   "fieldname": "pool_price",
+   "fieldtype": "Currency",
+   "label": "Pool Price",
+   "options": "depends_on=eval:doc.has_pool==1"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-27 14:58:19.034193",
+ "modified_by": "Administrator",
+ "module": "FCRM",
+ "name": "Payment Plan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

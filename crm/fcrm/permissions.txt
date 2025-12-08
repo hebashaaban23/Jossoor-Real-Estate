@@ -1,0 +1,120 @@
+from typing import Optional
+import frappe
+import json
+
+def _member_user_col() -> tuple[str, str]:
+    """
+    رجّع (doctype_name, user_fieldname) لدوك تايب أعضاء الفريق.
+    يحاول Team Member ثم Member. يختار أول حقل Link -> User.
+    Fallback إلى حقل شائع (user) لو لم يوجد.
+    """
+    candidates = ["Team Member", "Member"]
+    for dt in candidates:
+        try:
+            meta = frappe.get_meta(dt, cached=True)
+        except Exception:
+            continue
+
+        # ابحث عن أول Link -> User
+        for f in meta.get("fields", []):
+            if getattr(f, "fieldtype", None) == "Link" and getattr(f, "options", None) == "User":
+                return dt, f.fieldname
+
+        # بدائل مسمّاة شائعة
+        for alt in ("user", "member", "user_id", "user_email", "allocated_to"):
+            if meta.get_field(alt):
+                return dt, alt
+
+    # Fallback عام
+    return "Team Member", "user"
+
+def get_permission_query_conditions(user: str) -> Optional[str]:
+    roles = set(frappe.get_roles(user))
+
+    # Managers → full access
+    if "System Manager" in roles or "Sales Manager" in roles:
+        return None
+
+    escaped_user = frappe.db.escape(user)
+
+    # قاعدتك الأساسية: يملك/مالك lead أو المكلّف بها عبر ToDo
+    own_cond = f"""(
+        `tabCRM Lead`.`owner` = {escaped_user}
+        OR `tabCRM Lead`.`lead_owner` = {escaped_user}
+        OR EXISTS (
+            SELECT 1
+            FROM `tabToDo` td
+            WHERE td.`reference_type` = 'CRM Lead'
+              AND td.`reference_name` = `tabCRM Lead`.`name`
+              AND td.`allocated_to` = {escaped_user}
+        )
+    )"""
+
+    # لو Team Lead: وسّع لتشمل أعضاء فريقه
+    is_team_lead = frappe.db.exists("Team", {"team_leader": user})
+    if is_team_lead:
+        member_dt, member_col = _member_user_col()
+        return f"""
+        (
+            {own_cond}
+            OR `tabCRM Lead`.`lead_owner` IN (
+                SELECT m.`{member_col}`
+                FROM `tab{member_dt}` m
+                JOIN `tabTeam` t ON m.`parent` = t.`name`
+                WHERE t.`team_leader` = {escaped_user}
+            )
+            OR `tabCRM Lead`.`owner` IN (
+                SELECT m.`{member_col}`
+                FROM `tab{member_dt}` m
+                JOIN `tabTeam` t ON m.`parent` = t.`name`
+                WHERE t.`team_leader` = {escaped_user}
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM `tab{member_dt}` m2
+                JOIN `tabTeam` t2 ON m2.`parent` = t2.`name`
+                JOIN `tabToDo` td ON td.`reference_type` = 'CRM Lead'
+                                  AND td.`reference_name` = `tabCRM Lead`.`name`
+                WHERE t2.`team_leader` = {escaped_user}
+                  AND td.`allocated_to` = m2.`{member_col}`
+            )
+        )"""
+
+    return own_cond
+
+def has_permission(doc, ptype: str, user: str) -> bool:
+    roles = set(frappe.get_roles(user))
+
+    if "System Manager" in roles or "Sales Manager" in roles:
+        return True
+
+    # assigned users (from _assign JSON)
+    assigned = []
+    try:
+        assigned = json.loads(doc._assign or "[]")
+    except Exception:
+        assigned = []
+
+    if user == doc.owner or user == getattr(doc, "lead_owner", None) or user in assigned:
+        return True
+
+    # لو Team Lead: يسمح بفتح Leads أعضاء فريقه أو المكلفين بها
+    is_team_lead = frappe.db.exists("Team", {"team_leader": user})
+    if is_team_lead:
+        member_dt, member_col = _member_user_col()
+        members = frappe.db.sql_list(
+            f"""
+            SELECT m.`{member_col}`
+            FROM `tab{member_dt}` m
+            JOIN `tabTeam` t ON m.`parent` = t.`name`
+            WHERE t.`team_leader` = %s
+            """,
+            (user,),  # مهم تكون tuple
+        )
+        if (doc.owner in members) or (getattr(doc, "lead_owner", None) in members):
+            return True
+        if any(mem in assigned for mem in members):
+            return True
+
+    # افتراضيًا ارفض
+    return False

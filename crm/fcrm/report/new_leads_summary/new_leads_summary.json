@@ -1,0 +1,53 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-10-27 22:30:42.708525",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "mandatory": 0,
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "mandatory": 0,
+   "wildcard_filter": 0
+  }
+ ],
+ "idx": 0,
+ "is_standard": "Yes",
+ "javascript": "",
+ "json": "{}",
+ "letterhead": null,
+ "modified": "2025-11-16 16:59:31.838690",
+ "modified_by": "Administrator",
+ "module": "FCRM",
+ "name": "New Leads Summary",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "query": "SELECT\r\n    t.date AS \"Date\",\r\n    t.assigned_to AS \"Assigned To\",\r\n    t.new_leads AS \"New Leads\",\r\n    t.is_total AS \"Is Total Row\"\r\nFROM (\r\n    -- per assigned user per day\r\n    SELECT \r\n        DATE(creation) AS date,\r\n        COALESCE(\r\n            JSON_UNQUOTE(JSON_EXTRACT(_assign, '$[0]')),\r\n            'Unassigned'\r\n        ) AS assigned_to,\r\n        COUNT(name) AS new_leads,\r\n        0 AS is_total\r\n    FROM \r\n        `tabCRM Lead`\r\n    WHERE\r\n        creation BETWEEN %(from_date)s AND %(to_date)s\r\n    GROUP BY \r\n        DATE(creation),\r\n        COALESCE(\r\n            JSON_UNQUOTE(JSON_EXTRACT(_assign, '$[0]')),\r\n            'Unassigned'\r\n        )\r\n\r\n    UNION ALL\r\n\r\n    -- daily total (all users)\r\n    SELECT \r\n        DATE(creation) AS date,\r\n        'TOTAL' AS assigned_to,\r\n        COUNT(name) AS new_leads,\r\n        1 AS is_total\r\n    FROM \r\n        `tabCRM Lead`\r\n    WHERE\r\n        creation BETWEEN %(from_date)s AND %(to_date)s\r\n    GROUP BY \r\n        DATE(creation)\r\n) AS t\r\nORDER BY \r\n    t.date ASC,\r\n    t.is_total ASC,\r\n    t.assigned_to ASC;\r\n",
+ "ref_doctype": "CRM Lead",
+ "report_name": "New Leads Summary",
+ "report_script": "",
+ "report_type": "Query Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  }
+ ],
+ "timeout": 0
+}

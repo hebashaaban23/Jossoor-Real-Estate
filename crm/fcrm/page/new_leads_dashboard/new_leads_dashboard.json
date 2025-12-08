@@ -1,0 +1,29 @@
+{
+ "content": null,
+ "creation": "2025-10-27 23:03:49.780868",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-10-27 23:41:33.034920",
+ "modified_by": "Administrator",
+ "module": "FCRM",
+ "name": "new-leads-dashboard",
+ "owner": "Administrator",
+ "page_name": "new-leads-dashboard",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "New Leads Dashboard"
+}

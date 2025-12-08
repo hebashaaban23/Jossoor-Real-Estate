@@ -1,0 +1,77 @@
+<template>
+  <!-- عرض الصور المصغرة للمُعيّنين دائماً (حتى لغير المصرّح لهم) -->
+  <component
+    v-if="assignees?.length"
+    :is="assignees?.length == 1 ? 'Button' : 'div'"
+    @click="canAssign && openModal()"
+    :class="canAssign ? '' : 'cursor-default'"
+  >
+    <MultipleAvatar :avatars="assignees" />
+  </component>
+
+  <!-- زر التعيين يظهر فقط لمن يملك صلاحية -->
+  <Button v-else v-if="canAssign" @click="openModal">
+    {{ __('Assign to') }}
+  </Button>
+
+  <!-- لا نظهر الزر لغير المصرح لهم، لكن نترك الصور المصغرة كما هي -->
+
+  <AssignmentModal
+     v-if="showAssignmentModal"
+  v-model="showAssignmentModal"
+  v-model:assignees="assignees"
+  :doctype="doctype"
+  :doc="data"
+  :allowed-users="allowedUsers"   
+  />
+</template>
+
+<script setup>
+import MultipleAvatar from '@/components/MultipleAvatar.vue'
+import AssignmentModal from '@/components/Modals/AssignmentModal.vue'
+import { call } from 'frappe-ui'
+import { ref, computed } from 'vue'
+
+const props = defineProps({
+  data: Object,     // المستند الحالي (doc)
+  doctype: String,  // نوع المستند (CRM Lead)
+})
+
+const showAssignmentModal = ref(false)
+const assignees = defineModel()
+
+/* ---------- صلاحيات الواجهة ---------- */
+const getUserRoles = () =>
+  window?.frappe?.boot?.user?.roles ||
+  window?.frappe?.user?.roles ||
+  []
+
+// الأدوار المسموح لها فتح نافذة التعيين:
+const ALLOWED_ASSIGN_ROLES = ['Sales Manager', 'System Manager', 'Administrator']
+
+const canAssign = computed(() => {
+  const roles = getUserRoles()
+  return Array.isArray(roles) && ALLOWED_ASSIGN_ROLES.some(r => roles.includes(r))
+})
+
+/* ---------- تحميل قائمة المسموح تعيينهم ---------- */
+const allowedUsers = ref([])
+
+async function loadAssignable() {
+  try {
+    const res = await call('crm.fcrm.permissions.assign_to.get_assignable_users', {
+      doctype: props.doctype,
+      name: props.data?.name,
+    })
+    allowedUsers.value = Array.isArray(res) ? res : []
+  } catch {
+    // fallback: قائمة فارغة. السيرفر سيمنع أي مخالفة على أي حال.
+    allowedUsers.value = []
+  }
+}
+
+async function openModal() {
+  await loadAssignable()
+  showAssignmentModal.value = true
+}
+</script>

@@ -1,0 +1,48 @@
+/* portal_leads_menu.css - light, minimal styling */
+.portal-leads-dropdown {
+  margin: 6px 0;
+  font-family: inherit;
+}
+
+.portal-leads-header {
+  display: block;
+  padding: 8px 12px;
+  text-decoration: none;
+  cursor: pointer;
+  color: inherit;
+  font-weight: 600;
+}
+
+.portal-leads-header .leads-caret {
+  float: right;
+  transition: transform 0.18s ease;
+}
+
+.portal-leads-dropdown.open .leads-caret {
+  transform: rotate(180deg);
+}
+
+.portal-leads-menu {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 6px 0;
+  border-left: 2px solid transparent;
+}
+
+.portal-leads-menu li {
+  padding: 0;
+}
+
+.portal-leads-menu a.portal-leads-item {
+  display: block;
+  padding: 6px 14px;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 400;
+  font-size: 0.95rem;
+}
+
+.portal-leads-menu a.portal-leads-item:hover {
+  background: rgba(0,0,0,0.04);
+  color: inherit;
+}

@@ -1,0 +1,14 @@
+{
+  "doctype": "DocType",
+  "name": "Reservation Attachment",
+  "module": "FCRM",
+  "istable": 1,
+  "track_changes": 0,
+  "fields": [
+    {"fieldname":"title","label":"Title","fieldtype":"Data"},
+    {"fieldname":"file","label":"File","fieldtype":"Attach"}
+  ],
+  "permissions": [
+    {"role":"System Manager","read":1,"write":1,"create":1,"delete":1}
+  ]
+}

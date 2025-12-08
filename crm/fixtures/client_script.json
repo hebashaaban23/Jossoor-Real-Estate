@@ -1,0 +1,24 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "CRM Lead",
+  "enabled": 1,
+  "modified": "2025-08-29 23:41:11.146782",
+  "module": "FCRM",
+  "name": "Filtered Buttons",
+  "script": "frappe.listview_settings['CRM Lead'] = {\n    add_fields: ['original_lead', 'is_duplicate', 'status'],\n\n    get_indicator(doc) {\n        if (cint(doc.is_duplicate)) {\n            return [__('Duplicate'), 'yellow', 'is_duplicate,=,1'];\n        }\n        if (cint(doc.original_lead)) {\n            return [__('Original'), 'orange', 'original_lead,=,1'];\n        }\n    },\n\n    onload(listview) {\n        frappe.after_ajax(() => {\n            if (listview.page._crm_ui_ready) return;\n            listview.page._crm_ui_ready = true;\n\n            let activeBtn = null;\n\n            const styleBtn = ($btn, base, hover, active) => {\n                $btn.css({\n                    backgroundColor: base,\n                    color: 'white',\n                    fontWeight: 600,\n                    borderRadius: '6px',\n                    padding: '6px 12px',\n                    transition: 'all .2s ease-in-out',\n                    boxShadow: '0 2px 4px rgba(0,0,0,.1)',\n                    marginRight: '6px'\n                })\n                .hover(\n                    function(){ if (this !== activeBtn) $(this).css('background-color', hover); },\n                    function(){ if (this !== activeBtn) $(this).css('background-color', base); }\n                );\n            };\n\n            const markActive = ($btn, base, active) => {\n                if (activeBtn) {\n                    $(activeBtn).css({\n                        backgroundColor: $(activeBtn).data(\"base\"),\n                        boxShadow: '0 2px 4px rgba(0,0,0,.1)',\n                        transform: 'scale(1)'\n                    });\n                }\n                activeBtn = $btn[0];\n                $btn.css({\n                    backgroundColor: active,\n                    boxShadow: '0 4px 6px rgba(0,0,0,.15)',\n                    transform: 'scale(1.03)'\n                });\n            };\n\n            // Duplicate Leads button\n            const btnDuplicate = listview.page.add_inner_button(__('Duplicate Leads'), () => {\n                listview.filter_area.clear();\n                listview.filter_area.add([['CRM Lead', 'is_duplicate', '=', 1]]);\n                listview.run();\n                markActive(btnDuplicate, '#FF6B35', '#cc4c24');\n            });\n            btnDuplicate.data(\"base\", \"#FF6B35\");\n            styleBtn(btnDuplicate, '#FF6B35', '#e85c2b', '#cc4c24');\n\n            // Parent Leads button\n            const btnParent = listview.page.add_inner_button(__('Original Leads'), () => {\n                listview.filter_area.clear();\n                listview.filter_area.add([['CRM Lead', 'original_lead', '=', 1]]);\n                listview.run();\n                markActive(btnParent, '#1E3A8A', '#0f1e4f');\n            });\n            btnParent.data(\"base\", \"#1E3A8A\");\n            styleBtn(btnParent, '#1E3A8A', '#162c6a', '#0f1e4f');\n\n            // Without Duplicates button\n            const btnWithout = listview.page.add_inner_button(__('Without Duplicates'), () => {\n                listview.filter_area.clear();\n                listview.filter_area.add([['CRM Lead', 'is_duplicate', '!=', 1]]);\n                listview.run();\n                markActive(btnWithout, '#334155', '#111827');\n            });\n            btnWithout.data(\"base\", \"#334155\");\n            styleBtn(btnWithout, '#334155', '#1f2937', '#111827');\n\n            // ✅ Trigger \"Without Duplicates\" by default\n            btnWithout.trigger(\"click\");\n        });\n    }\n};\n",
+  "view": "List"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "CRM Lead",
+  "enabled": 1,
+  "modified": "2025-08-04 13:16:59.867962",
+  "module": "FCRM",
+  "name": "Highlight Orginal lead has Duplicates",
+  "script": "frappe.ui.form.on('CRM Lead', {\n  refresh(frm) {\n\n    if (frm.dashboard && frm.dashboard.wrapper) {\n      frm.dashboard.wrapper.find('.indicator').remove();\n    }\n\n    if (frm.doc.original_lead == 1) {\n      frm.dashboard.add_indicator(__('Has Duplicates'), 'orange');\n    }\n  }\n});",
+  "view": "List"
+ }
+]

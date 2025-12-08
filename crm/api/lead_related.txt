@@ -1,0 +1,33 @@
+# apps/crm/crm/api/lead_related.py
+import frappe
+
+def _ensure_portal_user():
+    if not frappe.session.user or frappe.session.user == "Guest":
+        frappe.throw("Not permitted from Guest", frappe.PermissionError)
+
+@frappe.whitelist()
+def create_task_for_lead(lead_name: str, description: str = "", allocated_to: str = None,
+                         status: str = "Open", doctype_lead: str = "CRM Lead"):
+    _ensure_portal_user()
+    doc = frappe.get_doc({
+        "doctype": "ToDo",
+        "description": description or f"Task for {lead_name}",
+        "status": status or "Open",
+        "allocated_to": allocated_to,
+        "reference_type": doctype_lead,
+        "reference_name": lead_name,
+    }).insert(ignore_permissions=False)
+    return {"name": doc.name}
+
+@frappe.whitelist()
+def create_note_for_lead(lead_name: str, title: str, public: int = 0, doctype_lead: str = "CRM Lead"):
+    _ensure_portal_user()
+    data = {
+        "doctype": "Note",
+        "title": title or f"Note for {lead_name}",
+        "public": int(public) or 0,
+        "reference_doctype": doctype_lead,
+        "reference_name": lead_name,
+    }
+    note = frappe.get_doc(data).insert(ignore_permissions=False)
+    return {"name": note.name}

@@ -1,0 +1,255 @@
+{
+ "actions": [],
+ "autoname": "RES-.#####",
+ "creation": "2025-09-25 23:18:11.878684",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "lead",
+  "lead_name",
+  "phone",
+  "source",
+  "campaign",
+  "status",
+  "sb_property",
+  "project",
+  "unit",
+  "property_location",
+  "property_type",
+  "developer",
+  "property_image",
+  "sb_payment",
+  "payment_plan",
+  "total_cost",
+  "per_installment",
+  "years",
+  "frequency",
+  "installments",
+  "sb_team",
+  "manager",
+  "team_leader",
+  "sales_agent",
+  "created_by_company_user",
+  "sb_meta",
+  "reservation_fee",
+  "reservation_date",
+  "description",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "CRM Lead",
+   "options": "CRM Lead",
+   "reqd": 1
+  },
+  {
+   "fieldname": "lead_name",
+   "fieldtype": "Data",
+   "label": "Lead Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Link",
+   "label": "Source",
+   "options": "Lead Source",
+   "read_only": 1
+  },
+  {
+   "fieldname": "campaign",
+   "fieldtype": "Link",
+   "label": "Campaign",
+   "options": "Campaign",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_property",
+   "fieldtype": "Section Break",
+   "label": "Property"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Real Estate Project"
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Link",
+   "label": "Unit",
+   "options": "Unit"
+  },
+  {
+   "fieldname": "property_location",
+   "fieldtype": "Data",
+   "label": "Location"
+  },
+  {
+   "fieldname": "property_type",
+   "fieldtype": "Data",
+   "label": "Property Type"
+  },
+  {
+   "fieldname": "developer",
+   "fieldtype": "Data",
+   "label": "Developer"
+  },
+  {
+   "fieldname": "property_image",
+   "fieldtype": "Attach Image",
+   "label": "Property Image"
+  },
+  {
+   "fieldname": "sb_payment",
+   "fieldtype": "Section Break",
+   "label": "Payment Plan"
+  },
+  {
+   "fieldname": "payment_plan",
+   "fieldtype": "Link",
+   "label": "Payment Plan",
+   "options": "Payment Plan"
+  },
+  {
+   "fieldname": "total_cost",
+   "fieldtype": "Currency",
+   "label": "Total Cost"
+  },
+  {
+   "fieldname": "per_installment",
+   "fieldtype": "Currency",
+   "label": "Per Installment",
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "years",
+   "fieldtype": "Int",
+   "label": "Number of Years"
+  },
+  {
+   "default": "Monthly",
+   "fieldname": "frequency",
+   "fieldtype": "Select",
+   "label": "Frequency",
+   "options": "Monthly\nQuarterly\nBiannual\nAnnual"
+  },
+  {
+   "fieldname": "installments",
+   "fieldtype": "Int",
+   "label": "Number of Installments",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_team",
+   "fieldtype": "Section Break",
+   "label": "Reservation Handled By"
+  },
+  {
+   "fieldname": "manager",
+   "fieldtype": "Link",
+   "label": "Manager",
+   "options": "User"
+  },
+  {
+   "fieldname": "team_leader",
+   "fieldtype": "Link",
+   "label": "Team Leader",
+   "options": "User"
+  },
+  {
+   "fieldname": "sales_agent",
+   "fieldtype": "Link",
+   "label": "Sales Agent",
+   "options": "User"
+  },
+  {
+   "fieldname": "created_by_company_user",
+   "fieldtype": "Link",
+   "label": "Created By (User)",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_meta",
+   "fieldtype": "Section Break",
+   "label": "Meta"
+  },
+  {
+   "fieldname": "reservation_fee",
+   "fieldtype": "Currency",
+   "label": "Reservation Fee"
+  },
+  {
+   "default": "Today",
+   "fieldname": "reservation_date",
+   "fieldtype": "Date",
+   "label": "Reservation Date"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Reservation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Reserved",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Reserved\nDeal Done",
+   "reqd": 1
+  }
+ ],
+ "image_field": "property_image",
+ "is_submittable": 1,
+ "links": [
+  {
+   "link_doctype": "Payment Plan",
+   "link_fieldname": "reservation"
+  }
+ ],
+ "modified": "2025-10-13 00:56:31.772621",
+ "modified_by": "Administrator",
+ "module": "FCRM",
+ "name": "Reservation",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "lead_name",
+ "track_changes": 1
+}

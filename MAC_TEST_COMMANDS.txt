@@ -1,0 +1,320 @@
+═══════════════════════════════════════════════════════════════════
+  🧪 اختبار كل الـ APIs على Mac - أوامر جاهزة
+═══════════════════════════════════════════════════════════════════
+
+انسخ والصق كل مجموعة أوامر على Mac Terminal:
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 0: Clear DNS Cache (اختياري)
+═══════════════════════════════════════════════════════════════════
+
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+echo "✅ DNS cache cleared"
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 1: Get OAuth Token
+═══════════════════════════════════════════════════════════════════
+
+# جرّب Administrator أول
+curl -sS -X POST "https://trust.jossoor.org/api/method/frappe.integrations.oauth2.get_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=password" \
+  --data-urlencode "username=Administrator" \
+  --data-urlencode "password=1234" \
+  --data-urlencode "client_id=3rcioodn8t" \
+  --data-urlencode "scope=all openid" | jq .
+
+# احفظ الـ token
+TOKEN=$(curl -sS -X POST "https://trust.jossoor.org/api/method/frappe.integrations.oauth2.get_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=password" \
+  --data-urlencode "username=Administrator" \
+  --data-urlencode "password=1234" \
+  --data-urlencode "client_id=3rcioodn8t" \
+  --data-urlencode "scope=all openid" | jq -r '.access_token')
+
+echo "Access Token: $TOKEN"
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 2: Test home_tasks
+═══════════════════════════════════════════════════════════════════
+
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.home_tasks?limit=5" \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 3: Test filter_tasks
+═══════════════════════════════════════════════════════════════════
+
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.filter_tasks?date_from=2025-11-01&date_to=2025-12-31&importance=High,Medium&limit=10" \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 4: Test main_page_buckets
+═══════════════════════════════════════════════════════════════════
+
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.main_page_buckets?min_each=3" \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 5: Test create_task
+═══════════════════════════════════════════════════════════════════
+
+curl -sS -X POST "https://trust.jossoor.org/api/method/crm.api.mobile_api.create_task" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Test Task from Mac",
+    "task_type": "General",
+    "status": "Open",
+    "priority": "High",
+    "start_date": "2025-12-05",
+    "description": "Testing OAuth API from Mac"
+  }' | jq .
+
+# احفظ الـ Task ID
+TASK_ID=$(curl -sS -X POST "https://trust.jossoor.org/api/method/crm.api.mobile_api.create_task" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Test Task", "task_type": "General", "priority": "High"}' | jq -r '.message.name')
+
+echo "Created Task ID: $TASK_ID"
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 6: Test edit_task
+═══════════════════════════════════════════════════════════════════
+
+curl -sS -X POST "https://trust.jossoor.org/api/method/crm.api.mobile_api.edit_task" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"task_id\": $TASK_ID,
+    \"priority\": \"Medium\",
+    \"description\": \"Updated from Mac\"
+  }" | jq .
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 7: Test update_status
+═══════════════════════════════════════════════════════════════════
+
+curl -sS -X POST "https://trust.jossoor.org/api/method/crm.api.mobile_api.update_status" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"task_id\": $TASK_ID,
+    \"status\": \"Completed\"
+  }" | jq .
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 8: Test delete_task
+═══════════════════════════════════════════════════════════════════
+
+curl -sS -X POST "https://trust.jossoor.org/api/method/crm.api.mobile_api.delete_task" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"task_id\": $TASK_ID
+  }" | jq .
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 الخطوة 9: Test Refresh Token
+═══════════════════════════════════════════════════════════════════
+
+# احفظ الـ refresh token من الخطوة 1
+REFRESH_TOKEN=$(curl -sS -X POST "https://trust.jossoor.org/api/method/frappe.integrations.oauth2.get_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=password" \
+  --data-urlencode "username=Administrator" \
+  --data-urlencode "password=1234" \
+  --data-urlencode "client_id=3rcioodn8t" \
+  --data-urlencode "scope=all openid" | jq -r '.refresh_token')
+
+echo "Refresh Token: $REFRESH_TOKEN"
+
+# استخدم الـ refresh token
+curl -sS -X POST "https://trust.jossoor.org/api/method/frappe.integrations.oauth2.get_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=refresh_token" \
+  --data-urlencode "refresh_token=$REFRESH_TOKEN" \
+  --data-urlencode "client_id=3rcioodn8t" | jq .
+
+
+═══════════════════════════════════════════════════════════════════
+  🔄 Fallback: استخدم test@trust.com إذا Administrator فشل
+═══════════════════════════════════════════════════════════════════
+
+TOKEN=$(curl -sS -X POST "https://trust.jossoor.org/api/method/frappe.integrations.oauth2.get_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=password" \
+  --data-urlencode "username=test@trust.com" \
+  --data-urlencode "password=test1234" \
+  --data-urlencode "client_id=3rcioodn8t" \
+  --data-urlencode "scope=all openid" | jq -r '.access_token')
+
+echo "Token: $TOKEN"
+
+# ثم استخدم $TOKEN في باقي الأوامر
+
+
+═══════════════════════════════════════════════════════════════════
+  💾 Script كامل (نسخة واحدة)
+═══════════════════════════════════════════════════════════════════
+
+# احفظ في ملف واحد:
+cat > ~/test_api.sh << 'EOF'
+BASE="https://trust.jossoor.org"
+CLIENT="3rcioodn8t"
+
+# Get Token
+echo "Getting token..."
+TOKEN=$(curl -sS -X POST "$BASE/api/method/frappe.integrations.oauth2.get_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=password&username=Administrator&password=1234&client_id=$CLIENT&scope=all openid" | jq -r '.access_token')
+
+echo "Token: ${TOKEN:0:30}..."
+echo ""
+
+# Test all endpoints
+echo "1. home_tasks..."
+curl -sS "$BASE/api/method/crm.api.mobile_api.home_tasks?limit=3" \
+  -H "Authorization: Bearer $TOKEN" | jq '.message.today | length'
+
+echo "2. filter_tasks..."
+curl -sS "$BASE/api/method/crm.api.mobile_api.filter_tasks?limit=3" \
+  -H "Authorization: Bearer $TOKEN" | jq '.message.data | length'
+
+echo "3. main_page_buckets..."
+curl -sS "$BASE/api/method/crm.api.mobile_api.main_page_buckets" \
+  -H "Authorization: Bearer $TOKEN" | jq '.message | keys'
+
+echo "4. create_task..."
+TASK=$(curl -sS -X POST "$BASE/api/method/crm.api.mobile_api.create_task" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test","task_type":"General","priority":"High"}' | jq -r '.message.name')
+echo "   Created Task ID: $TASK"
+
+if [ -n "$TASK" ] && [ "$TASK" != "null" ]; then
+  echo "5. edit_task..."
+  curl -sS -X POST "$BASE/api/method/crm.api.mobile_api.edit_task" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"task_id\":$TASK,\"priority\":\"Low\"}" | jq '.message.priority'
+  
+  echo "6. update_status..."
+  curl -sS -X POST "$BASE/api/method/crm.api.mobile_api.update_status" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"task_id\":$TASK,\"status\":\"Completed\"}" | jq '.message.status'
+  
+  echo "7. delete_task..."
+  curl -sS -X POST "$BASE/api/method/crm.api.mobile_api.delete_task" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"task_id\":$TASK}" | jq '.message'
+fi
+
+echo ""
+echo "✅ All tests complete!"
+EOF
+
+chmod +x ~/test_api.sh
+~/test_api.sh
+
+
+═══════════════════════════════════════════════════════════════════
+  📊 Expected Results
+═══════════════════════════════════════════════════════════════════
+
+1. home_tasks        → Number (e.g., 3)
+2. filter_tasks      → Number (e.g., 5)
+3. main_page_buckets → ["today", "late", "upcoming"]
+4. create_task       → Task ID (e.g., 123)
+5. edit_task         → "Low" (priority changed)
+6. update_status     → "Completed" (status changed)
+7. delete_task       → "Task XXX deleted successfully"
+
+✅ All tests complete!
+
+
+═══════════════════════════════════════════════════════════════════
+  ⚠️ إذا فشل OAuth
+═══════════════════════════════════════════════════════════════════
+
+استخدم Session Cookies بدلاً:
+
+# Login
+curl -sS -X POST "https://trust.jossoor.org/api/method/login" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "usr=Administrator" \
+  --data-urlencode "pwd=1234" \
+  -c cookies.txt | jq .
+
+# Test APIs
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.home_tasks?limit=5" \
+  -b cookies.txt | jq .
+
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.filter_tasks?limit=5" \
+  -b cookies.txt | jq .
+
+curl -sS "https://trust.jossoor.org/api/method/crm.api.mobile_api.main_page_buckets" \
+  -b cookies.txt | jq .
+
+curl -sS -X POST "https://trust.jossoor.org/api/method/crm.api.mobile_api.create_task" \
+  -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test","task_type":"General","priority":"High"}' | jq .
+
+
+═══════════════════════════════════════════════════════════════════
+  📁 تحميل الـ Script الكامل
+═══════════════════════════════════════════════════════════════════
+
+من السيرفر:
+  /home/frappe/frappe-bench-env/frappe-bench/apps/crm/test_all_apis_mac.sh
+
+استخدم scp أو انسخ المحتوى يدوياً
+
+
+═══════════════════════════════════════════════════════════════════
+  ✅ Credentials
+═══════════════════════════════════════════════════════════════════
+
+Trust.com:
+  Base URL:  https://trust.jossoor.org
+  Client ID: 3rcioodn8t
+  
+  User 1: Administrator / 1234
+  User 2: test@trust.com / test1234
+
+
+Benchmark.com:
+  Base URL:  https://benchmark.jossoor.org
+  Client ID: da2f1j4l9f
+  
+  User: Administrator / 1234
+
+
+═══════════════════════════════════════════════════════════════════
+  📱 للمطور Flutter
+═══════════════════════════════════════════════════════════════════
+
+بعد ما تختبر الـ APIs وتتأكد إنها شغالة:
+
+1. سلّمه ملف: FLUTTER_OAUTH_HANDOVER_AR.md
+2. قوله الـ Client ID: 3rcioodn8t
+3. وضّحله إن كل الـ APIs مختبرة ✅
+
+
+═══════════════════════════════════════════════════════════════════
+
