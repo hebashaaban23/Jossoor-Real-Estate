@@ -322,7 +322,6 @@ standard_dropdown_items = [
 ]
 
 fixtures = [
-    "Property Setter",
     "Client Script",
     "Server Script",
     {
