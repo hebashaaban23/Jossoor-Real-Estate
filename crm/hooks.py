@@ -322,12 +322,17 @@ standard_dropdown_items = [
 ]
 
 fixtures = [
+    "Property Setter",
+    "Client Script",
+    "Server Script",
     {
         "dt": "Client Script",
         "filters": [["name", "in", ["Filtered Buttons", "Highlight Orginal lead has Duplicates"]]],
     },
     {"dt": "Server Script", "filters": [["name", "in", ["Hot Leads", "FCRM Note For Hot Leads", "ToDo For Hot Leads"]]]},
     {"dt": "DocType", "filters": [["name", "in", ["Saved Filter"]]]},
-    {"dt": "DocType", "filters": [["name", "in", ["CRM Lead"]]]},
+    {"dt": "DocType", "filters": [["name", "in", ["CRM Lead"," CRM Lead Status","CRM Task","CRM Communication Status"]]]},
+  
+
 
 ]

@@ -3990,6 +3990,10 @@ def home_leads(limit=5):
 	Returns leads where assigned_date is today.
 	Returns all available fields for each lead.
 	
+	Permission logic:
+	- Each user sees only their own leads (owner = current_user)
+	- Team Leader sees their own leads + leads assigned to their team members
+	
 	Args:
 		limit: Maximum number of leads to return (default: 5)
 	
@@ -3997,13 +4001,101 @@ def home_leads(limit=5):
 		{"today": [leads...], "limit": N}
 	"""
 	today_date = today()
+	current_user = frappe.session.user
 	
-	# Get leads with assigned_date = today
+	# Build filters for assigned_date = today
+	filters = [
+		["assigned_date", "=", today_date]
+	]
+	
+	# Apply user-based permission filtering
+	# Each user should only see leads they own, assigned to them, or assigned to their team
+	if current_user and current_user != "Guest":
+		user_roles = set(frappe.get_roles(current_user))
+		
+		# System Manager can see all leads (no additional filtering)
+		if "System Manager" not in user_roles:
+			# Build permission filters: owner OR assigned_to OR assigned_to_team
+			
+			# 2. Assigned to current user (via ToDo)
+			# Get all leads assigned to current user
+			assigned_leads = frappe.get_all(
+				"ToDo",
+				filters=[
+					["reference_type", "=", "CRM Lead"],
+					["allocated_to", "=", current_user],
+					["status", "=", "Open"]
+				],
+				fields=["reference_name"],
+				pluck="reference_name"
+			)
+			
+			# 3. Assigned to team members (if user is Team Leader)
+			# Get team members - find Team where current user is team_leader
+			teams = frappe.get_all(
+				"Team",
+				filters={"team_leader": current_user},
+				fields=["name"],
+				limit=1
+			)
+			
+			team_members = []
+			if teams:
+				team_name = teams[0].name
+				# Get team members from Member child table
+				members = frappe.get_all(
+					"Member",
+					filters={
+						"parent": team_name,
+						"parenttype": "Team"
+					},
+					fields=["member"],
+					pluck="member"
+				)
+				# Filter out None/empty values
+				team_members = [m for m in members if m]
+			
+			# Get leads assigned to team members
+			team_assigned_leads = []
+			if team_members:
+				team_assigned_leads = frappe.get_all(
+					"ToDo",
+					filters=[
+						["reference_type", "=", "CRM Lead"],
+						["allocated_to", "in", team_members],
+						["status", "=", "Open"]
+					],
+					fields=["reference_name"],
+					pluck="reference_name"
+				)
+			
+			# Combine all allowed lead names (assigned + team)
+			allowed_lead_names = set(assigned_leads + team_assigned_leads)
+			
+			# Build permission filter: owner = current_user OR name in allowed_leads
+			# We'll use a more efficient approach by getting owned leads and combining
+			if allowed_lead_names:
+				# Get owned leads and combine with assigned/team leads
+				owned_leads = frappe.get_all(
+					"CRM Lead",
+					filters=[["owner", "=", current_user]],
+					fields=["name"],
+					pluck="name"
+				)
+				# Combine all allowed lead names
+				allowed_lead_names.update(owned_leads)
+				
+				# Add filter to only include allowed leads
+				# This efficiently combines owner + assigned + team in one filter
+				filters.append(["name", "in", list(allowed_lead_names)])
+			else:
+				# No assigned/team leads, only show owned leads
+				filters.append(["owner", "=", current_user])
+	
+	# Get leads with assigned_date = today and permission filters
 	leads = frappe.get_all(
 		"CRM Lead",
-		filters=[
-			["assigned_date", "=", today_date]
-		],
+		filters=filters,
 		fields=["name"],
 		order_by="modified desc",
 		page_length=cint(limit) or 5
