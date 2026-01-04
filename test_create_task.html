@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار create_task API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .required {
+            color: red;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .response.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .response.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .response pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 12px;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #004085;
+        }
+        
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .info-box ul {
+            margin: 10px 0 0 20px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 10px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار create_task API</h1>
+        <p class="subtitle">من المتصفح مباشرة</p>
+        
+        <div class="info-box">
+            <strong>ℹ️ معلومات مهمة:</strong>
+            <ul>
+                <li>يجب أن تكون مسجل دخول في المتصفح على <strong>https://trust.jossoor.org</strong></li>
+                <li>يجب أن يكون لديك أحد الأدوار: Sales User, Sales Manager, Sales Master Manager, System Manager</li>
+                <li>سيتم استخدام Session Cookie تلقائياً من المتصفح</li>
+            </ul>
+        </div>
+        
+        <form id="taskForm">
+            <!-- الحقول الأساسية -->
+            <div class="section">
+                <div class="section-title">📋 الحقول الأساسية</div>
+                
+                <div class="form-group">
+                    <label for="task_type">نوع المهمة <span class="required">*</span></label>
+                    <select id="task_type" name="task_type" required>
+                        <option value="">اختر نوع المهمة</option>
+                        <option value="Meeting">Meeting</option>
+                        <option value="Property Showing">Property Showing</option>
+                        <option value="Call">Call</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="title">العنوان</label>
+                    <input type="text" id="title" name="title" placeholder="عنوان المهمة">
+                </div>
+                
+                <div class="two-columns">
+                    <div class="form-group">
+                        <label for="status">الحالة</label>
+                        <select id="status" name="status">
+                            <option value="">اختر الحالة</option>
+                            <option value="Backlog">Backlog</option>
+                            <option value="Todo" selected>Todo</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Done">Done</option>
+                            <option value="late">late</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="priority">الأولوية</label>
+                        <select id="priority" name="priority">
+                            <option value="">اختر الأولوية</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="two-columns">
+                    <div class="form-group">
+                        <label for="start_date">تاريخ البدء</label>
+                        <input type="datetime-local" id="start_date" name="start_date">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="due_date">تاريخ الاستحقاق</label>
+                        <input type="datetime-local" id="due_date" name="due_date">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">الوصف</label>
+                    <textarea id="description" name="description" placeholder="وصف المهمة"></textarea>
+                </div>
+            </div>
+            
+            <!-- حقول المرجع -->
+            <div class="section">
+                <div class="section-title">🔗 حقول المرجع</div>
+                
+                <div class="two-columns">
+                    <div class="form-group">
+                        <label for="lead">Lead (CRM Lead ID)</label>
+                        <input type="text" id="lead" name="lead" placeholder="CRM-LEAD-2025-001">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="project">Project (Real Estate Project ID)</label>
+                        <input type="text" id="project" name="project" placeholder="PROJECT-001">
+                    </div>
+                </div>
+                
+                <div class="two-columns">
+                    <div class="form-group">
+                        <label for="unit">Unit (Unit ID)</label>
+                        <input type="text" id="unit" name="unit" placeholder="UNIT-001">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="project_unit">Project Unit (Project Unit ID)</label>
+                        <input type="text" id="project_unit" name="project_unit" placeholder="PROJECT-UNIT-001">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- حقول التعيين -->
+            <div class="section">
+                <div class="section-title">👥 حقول التعيين</div>
+                
+                <div class="form-group">
+                    <label for="assigned_to">Assigned To (Email واحد - legacy)</label>
+                    <input type="email" id="assigned_to" name="assigned_to" placeholder="user@example.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>Assigned To List (JSON Array)</label>
+                    <textarea id="assigned_to_list" name="assigned_to_list" placeholder='[{"email": "user@example.com", "name": "User Name", "profile_pic": null}]'></textarea>
+                    <small style="color: #666; font-size: 12px;">صيغة JSON: [{"email": "...", "name": "...", "profile_pic": null}]</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Meeting Attendees (JSON Array)</label>
+                    <textarea id="meeting_attendees" name="meeting_attendees" placeholder='[{"email": "attendee@example.com", "name": "Attendee Name", "profile_pic": null}]'></textarea>
+                    <small style="color: #666; font-size: 12px;">صيغة JSON: [{"email": "...", "name": "...", "profile_pic": null}]</small>
+                </div>
+            </div>
+            
+            <button type="submit" id="submitBtn">🚀 إنشاء Task</button>
+            <div class="loading" id="loading">⏳ جاري المعالجة...</div>
+        </form>
+        
+        <div class="response" id="response"></div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('taskForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const responseDiv = document.getElementById('response');
+        
+        // تعيين التاريخ الافتراضي
+        const now = new Date();
+        const today = now.toISOString().slice(0, 16);
+        document.getElementById('start_date').value = today;
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // إخفاء الرسائل السابقة
+            responseDiv.style.display = 'none';
+            responseDiv.className = 'response';
+            
+            // تعطيل الزر وإظهار Loading
+            submitBtn.disabled = true;
+            loading.classList.add('show');
+            
+            // جمع البيانات من النموذج
+            const formData = new FormData(form);
+            const data = {};
+            
+            // إضافة الحقول الأساسية
+            if (formData.get('task_type')) data.task_type = formData.get('task_type');
+            if (formData.get('title')) data.title = formData.get('title');
+            if (formData.get('status')) data.status = formData.get('status');
+            if (formData.get('priority')) data.priority = formData.get('priority');
+            if (formData.get('description')) data.description = formData.get('description');
+            
+            // تحويل التواريخ
+            if (formData.get('start_date')) {
+                const startDate = new Date(formData.get('start_date'));
+                data.start_date = startDate.toISOString().slice(0, 19).replace('T', ' ');
+            }
+            if (formData.get('due_date')) {
+                const dueDate = new Date(formData.get('due_date'));
+                data.due_date = dueDate.toISOString().slice(0, 19).replace('T', ' ');
+            }
+            
+            // حقول المرجع
+            if (formData.get('lead')) data.lead = formData.get('lead');
+            if (formData.get('project')) data.project = formData.get('project');
+            if (formData.get('unit')) data.unit = formData.get('unit');
+            if (formData.get('project_unit')) data.project_unit = formData.get('project_unit');
+            
+            // حقول التعيين
+            if (formData.get('assigned_to')) data.assigned_to = formData.get('assigned_to');
+            
+            // Parse JSON fields
+            try {
+                if (formData.get('assigned_to_list')) {
+                    const assignedToList = formData.get('assigned_to_list').trim();
+                    if (assignedToList) {
+                        data.assigned_to_list = JSON.parse(assignedToList);
+                    }
+                }
+            } catch (e) {
+                showError('خطأ في صيغة assigned_to_list JSON: ' + e.message);
+                submitBtn.disabled = false;
+                loading.classList.remove('show');
+                return;
+            }
+            
+            try {
+                if (formData.get('meeting_attendees')) {
+                    const meetingAttendees = formData.get('meeting_attendees').trim();
+                    if (meetingAttendees) {
+                        data.meeting_attendees = JSON.parse(meetingAttendees);
+                    }
+                }
+            } catch (e) {
+                showError('خطأ في صيغة meeting_attendees JSON: ' + e.message);
+                submitBtn.disabled = false;
+                loading.classList.remove('show');
+                return;
+            }
+            
+            // إرسال الطلب
+            try {
+                const response = await fetch('https://trust.jossoor.org/api/method/crm.api.mobile_api.create_task', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', // استخدام cookies من المتصفح
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && !result.exc_type) {
+                    showSuccess(result);
+                } else {
+                    showError(result);
+                }
+            } catch (error) {
+                showError({
+                    message: 'خطأ في الاتصال',
+                    error: error.message
+                });
+            } finally {
+                submitBtn.disabled = false;
+                loading.classList.remove('show');
+            }
+        });
+        
+        function showSuccess(data) {
+            responseDiv.className = 'response success';
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = '<strong>✅ تم إنشاء Task بنجاح!</strong><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            responseDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        function showError(data) {
+            responseDiv.className = 'response error';
+            responseDiv.style.display = 'block';
+            let errorMsg = '';
+            
+            if (data.exception) {
+                errorMsg = '<strong>❌ خطأ:</strong><br>' + data.exception;
+            } else if (data.message) {
+                errorMsg = '<strong>❌ خطأ:</strong><br>' + data.message;
+            } else {
+                errorMsg = '<strong>❌ خطأ غير معروف</strong>';
+            }
+            
+            responseDiv.innerHTML = errorMsg + '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            responseDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>
+

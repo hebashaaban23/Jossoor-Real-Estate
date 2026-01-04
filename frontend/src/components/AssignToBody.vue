@@ -3,16 +3,12 @@
     class="flex flex-col gap-2 my-2 w-[470px] rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black p-3 ring-opacity-5 focus:outline-none"
   >
     <div class="text-base text-ink-gray-5">{{ __('Assign to') }}</div>
-    <Link
-      class="form-control"
-      value=""
-      doctype="User"
-      @change="(option) => addValue(option) && ($refs.input.value = '')"
+    <Autocomplete
+      ref="autocompleteRef"
+      :options="userOptions"
       :placeholder="__('John Doe')"
-      :filters="{
-        name: ['in', users.data.crmUsers?.map((user) => user.name)],
-      }"
-      :hideMe="true"
+      @change="(option) => option && addValue(option.value)"
+      :filterable="true"
     >
       <template #target="{ togglePopover }">
         <div
@@ -50,11 +46,11 @@
       <template #item-label="{ option }">
         <Tooltip :text="option.value">
           <div class="cursor-pointer text-ink-gray-9">
-            {{ getUser(option.value).full_name }}
+            {{ option.label }}
           </div>
         </Tooltip>
       </template>
-    </Link>
+    </Autocomplete>
     <div class="flex items-center justify-between gap-2">
       <div
         class="text-base text-ink-gray-5 cursor-pointer select-none"
@@ -69,11 +65,11 @@
 
 <script setup>
 import UserAvatar from '@/components/UserAvatar.vue'
-import Link from '@/components/Controls/Link.vue'
+import Autocomplete from '@/components/frappe-ui/Autocomplete.vue'
 import { usersStore } from '@/stores/users'
 import { capture } from '@/telemetry'
-import { Tooltip, Switch, createResource } from 'frappe-ui'
-import { ref, watch } from 'vue'
+import { Tooltip, Switch, createResource, call, toast } from 'frappe-ui'
+import { ref, watch, computed, nextTick, onMounted } from 'vue'
 
 const props = defineProps({
   doctype: {
@@ -81,7 +77,7 @@ const props = defineProps({
     default: '',
   },
   docname: {
-    type: Object,
+    type: [String, Object],
     default: null,
   },
   open: {
@@ -103,6 +99,110 @@ const assignToMe = ref(false)
 const error = ref('')
 
 const { users, getUser } = usersStore()
+
+const allowedUsers = ref([])
+const autocompleteRef = ref(null)
+
+// Log when component is mounted and load users if already open
+onMounted(async () => {
+  console.log('AssignToBody: Component mounted', {
+    doctype: props.doctype,
+    docname: props.docname,
+    open: props.open
+  })
+  
+  // If component is mounted and already open, load users immediately
+  if (props.open) {
+    await loadAssignableUsers()
+  }
+})
+
+async function loadAssignableUsers() {
+  try {
+    // Handle both String and Object docname
+    let docname = null
+    if (props.docname) {
+      if (typeof props.docname === 'string') {
+        docname = props.docname.trim() || null
+      } else if (typeof props.docname === 'object') {
+        docname = props.docname?.name || props.docname?.id || null
+        if (docname && typeof docname === 'string') {
+          docname = docname.trim() || null
+        }
+      }
+    }
+    console.log('AssignToBody: Loading assignable users for:', { doctype: props.doctype, docname, originalDocname: props.docname })
+    
+    // Try multiple methods to call the API
+    let res = null
+    
+    // Method 1: Use frappe-ui call
+    try {
+      console.log('AssignToBody: Trying frappe-ui call...')
+      res = await call('crm.fcrm.permissions.assign_to.get_assignable_users', {
+        doctype: props.doctype,
+        name: docname,
+      })
+      console.log('AssignToBody: frappe-ui call result:', res)
+    } catch (callErr) {
+      console.warn('AssignToBody: frappe-ui call failed, trying window.frappe.call...', callErr)
+      
+      // Method 2: Use window.frappe.call as fallback
+      if (window.frappe && typeof window.frappe.call === 'function') {
+        try {
+          const frappeRes = await window.frappe.call({
+            method: 'crm.fcrm.permissions.assign_to.get_assignable_users',
+            args: {
+              doctype: props.doctype,
+              name: docname,
+            }
+          })
+          res = frappeRes?.message || frappeRes
+          console.log('AssignToBody: window.frappe.call result:', res)
+        } catch (frappeErr) {
+          console.error('AssignToBody: window.frappe.call also failed:', frappeErr)
+          throw frappeErr
+        }
+      } else {
+        throw callErr
+      }
+    }
+    
+    // Handle response - it might be wrapped in message property
+    if (res && typeof res === 'object' && 'message' in res) {
+      res = res.message
+    }
+    
+    console.log('AssignToBody: Final response:', res)
+    allowedUsers.value = Array.isArray(res) ? res : []
+    console.log('AssignToBody: Set allowedUsers to:', allowedUsers.value)
+  } catch (err) {
+    console.error('AssignToBody: Failed to load assignable users:', err)
+    console.error('AssignToBody: Error details:', err)
+    console.error('AssignToBody: Error stack:', err.stack)
+    // Return empty array on error - server will validate anyway
+    allowedUsers.value = []
+  }
+}
+
+// Convert allowedUsers to Autocomplete options format
+const userOptions = computed(() => {
+  console.log('AssignToBody: Computing userOptions, allowedUsers:', allowedUsers.value)
+  if (!allowedUsers.value || allowedUsers.value.length === 0) {
+    console.log('AssignToBody: No allowed users, returning empty options')
+    return []
+  }
+  
+  const options = allowedUsers.value.map((user) => ({
+    label: user.full_name || user.name,
+    value: user.name,
+    description: user.name,
+    image: user.user_image,
+  }))
+  
+  console.log('AssignToBody: User options computed:', options)
+  return options
+})
 
 const removeValue = (value) => {
   if (value === getUser('').name) {
@@ -139,12 +239,17 @@ watch(assignToMe, (val) => {
   }
 })
 
+// Load assignable users and handle oldAssignees when popover opens
 watch(
   () => props.open,
-  (val) => {
+  async (val) => {
+    console.log('AssignToBody: props.open changed to:', val, 'doctype:', props.doctype, 'docname:', props.docname)
     if (val) {
+      // Load assignable users from API
+      await loadAssignableUsers()
+      
+      // Handle oldAssignees
       oldAssignees.value = [...(assignees.value || [])]
-
       assignToMe.value = assignees.value.some(
         (assignee) => assignee.name === getUser('').name,
       )
@@ -183,29 +288,73 @@ async function updateAssignees() {
       await removeAssignees.submit(removedAssignees)
     }
     if (addedAssignees.length) {
-      addAssignees.submit(addedAssignees)
+      await addAssignees(addedAssignees)
     }
   }
 }
 
-const addAssignees = createResource({
-  url: 'frappe.desk.form.assign_to.add',
-  makeParams: (addedAssignees) => ({
-    doctype: props.doctype,
-    name: props.docname,
-    assign_to: addedAssignees,
-  }),
-  onSuccess: () => {
+async function addAssignees(addedAssignees) {
+  try {
+    // Handle both String and Object docname
+    let docname = null
+    if (props.docname) {
+      if (typeof props.docname === 'string') {
+        docname = props.docname.trim() || null
+      } else if (typeof props.docname === 'object') {
+        docname = props.docname?.name || props.docname?.id || null
+        if (docname && typeof docname === 'string') {
+          docname = docname.trim() || null
+        }
+      }
+    }
+    
+    if (!docname) {
+      error.value = __('Document name is required. Please ensure the document is saved before assigning.')
+      console.error('AssignToBody: No valid docname found', { docname: props.docname, doctype: props.doctype })
+      throw new Error(__('Document name is required'))
+    }
+    
+    // Use Frappe's default assign_to function
+    await call('frappe.desk.form.assign_to.add', {
+      doctype: props.doctype,
+      name: docname,
+      assign_to: addedAssignees,
+      description: '',
+    })
     capture('assign_to', { doctype: props.doctype })
-  },
-})
+  } catch (err) {
+    error.value = err.messages?.[0] || __('Failed to assign')
+    console.error('AssignToBody: Error in addAssignees', err)
+    throw err
+  }
+}
 
 const removeAssignees = createResource({
   url: 'crm.api.doc.remove_assignments',
-  makeParams: (removedAssignees) => ({
-    doctype: props.doctype,
-    name: props.docname,
-    assignees: removedAssignees,
-  }),
+  makeParams: (removedAssignees) => {
+    // Handle both String and Object docname
+    let docname = null
+    if (props.docname) {
+      if (typeof props.docname === 'string') {
+        docname = props.docname.trim() || null
+      } else if (typeof props.docname === 'object') {
+        docname = props.docname?.name || props.docname?.id || null
+        if (docname && typeof docname === 'string') {
+          docname = docname.trim() || null
+        }
+      }
+    }
+    
+    if (!docname) {
+      console.error('AssignToBody: No valid docname for removeAssignees', { docname: props.docname, doctype: props.doctype })
+      throw new Error(__('Document name is required'))
+    }
+    
+    return {
+      doctype: props.doctype,
+      name: docname,
+      assignees: JSON.stringify(removedAssignees),
+    }
+  },
 })
 </script>

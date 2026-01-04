@@ -806,39 +806,56 @@ function sanitizeFilters(arr = []) {
 }
 
 /* ----------- FIXED: never dedupe away >= / <= ----------- */
-function applyFilters(filters = []) {
+function applyFilters(filters = [], replace = false) {
   const vc = viewControls.value
-  if (!vc) return
+  if (!vc) {
+    return
+  }
 
   const DOC = 'CRM Lead'
   const tuples = []
 
   for (const f of (filters || [])) {
     if (!f?.fieldname || f.value === '' || f.value === null || f.value === undefined) continue
-    tuples.push([DOC, f.fieldname, String(f.operator || '=').toLowerCase(), f.value])
+    // Convert value to proper type for Check fields (delayed is a Check field)
+    let value = f.value
+    if (f.fieldname === 'delayed') {
+      // Ensure delayed is 1 or 0 (not boolean)
+      value = value ? 1 : 0
+    }
+    tuples.push([DOC, f.fieldname, String(f.operator || '=').toLowerCase(), value])
   }
 
   // pagination reset
   loadMore.value = 1
   updatedPageCount.value = 20
 
-  try {
-    if (typeof vc.clearFilters === 'function') vc.clearFilters()
-  } catch (e) {
-    console.warn('[Leads] clearFilters failed (non-fatal):', e)
+  if (tuples.length === 0) {
+    // Clear filters if no filters provided
+    try {
+      if (typeof vc.clearFilters === 'function') {
+        vc.clearFilters()
+        vc.reload?.()
+      }
+    } catch (e) {
+      console.warn('[Leads] clearFilters failed (non-fatal):', e)
+    }
+    return
   }
 
   try {
-    if (typeof vc.applyFilter === 'function') {
-      for (const t of tuples) vc.applyFilter({ filters: [t], replace: false })
-    } else if (typeof vc.setFilters === 'function') {
+    if (typeof vc.setFilters === 'function') {
+      // setFilters always replaces filters, which is what we want for query params
       vc.setFilters(tuples)
+    } else if (typeof vc.applyFilter === 'function') {
+      // Apply all filters at once with replace flag
+      vc.applyFilter({ filters: tuples, replace: replace })
     }
   } catch (e) {
     console.error('[Leads] apply/set filters error:', e)
   }
 
-  vc.reload?.()
+  // Don't call reload here - setFilters/applyFilter already trigger reload
 }
 
 // apply route query -> filters for the Leads page
@@ -852,6 +869,16 @@ function applyQueryFilters(query = {}) {
   ui.priority = query.priority || ''
   // if you have follow_up logic that maps to the UI, set it here:
   ui.follow_up = query.follow_up || ''
+  
+  // Update project filter in UI
+  if (query.project) {
+    ui.project = query.project
+  }
+  
+  // Update user/owner filter in UI
+  if (query.user) {
+    ui.owner = query.user
+  }
 
   // build an F array like applyFiltersFromPanel or applyFilters expects
   const F = []
@@ -859,6 +886,22 @@ function applyQueryFilters(query = {}) {
   if (query.status)    F.push({ fieldname: 'status', operator: '=', value: query.status })
   if (query.type)      F.push({ fieldname: 'lead_type', operator: '=', value: query.type })
   if (query.priority)  F.push({ fieldname: 'priority', operator: '=', value: query.priority })
+  
+  // Support delayed filter
+  if (query.delayed !== undefined && query.delayed !== null && query.delayed !== '') {
+    const delayedValue = query.delayed === '1' || query.delayed === 1 || query.delayed === true || query.delayed === 'true'
+    F.push({ fieldname: 'delayed', operator: '=', value: delayedValue ? 1 : 0 })
+  }
+  
+  // Support project filter
+  if (query.project) {
+    F.push({ fieldname: PROJECT_FIELD.value, operator: '=', value: query.project })
+  }
+  
+  // Support user/owner filter
+  if (query.user) {
+    F.push({ fieldname: 'lead_owner', operator: '=', value: query.user })
+  }
 
   if (query.follow_up) {
     // example: 'today' mapping — adapt to your app's follow_up field if needed
@@ -874,21 +917,45 @@ function applyQueryFilters(query = {}) {
   }
 
   // apply filters (this will also reload the viewControls)
-  if (F.length) applyFilters(F)
-  // if no filters, clear filters so QuickFiltersBar + list stay in sync
-  else {
-    // clear existing filters in ViewControls (applyFilters already resets pagination)
-    const vc = viewControls.value
-    try { vc?.clearFilters?.() } catch (e) { /* ignore */ }
-    vc?.reload?.()
+  // Use replace: true to replace all existing filters with query filters
+  if (F.length) {
+    applyFilters(F, true)  // replace: true to clear old filters and apply new ones
+  } else {
+    // clear existing filters so QuickFiltersBar + list stay in sync
+    applyFilters([], true)  // Empty array with replace will clear all filters
   }
 }
+
+// Store pending query filters to apply when viewControls is ready
+const pendingQueryFilters = ref(null)
+
+// Watch for viewControls to be ready, then apply pending filters
+watch(
+  () => viewControls.value,
+  (vc) => {
+    if (vc && pendingQueryFilters.value) {
+      const query = pendingQueryFilters.value
+      pendingQueryFilters.value = null
+      // Use nextTick to ensure viewControls is fully initialized
+      setTimeout(() => {
+        applyQueryFilters(query)
+      }, 50)
+    }
+  }
+)
 
 // run on initial load and whenever query changes
 watch(
   () => route.query,
   (q) => {
-    applyQueryFilters(q || {})
+    const query = q || {}
+    // If viewControls is ready, apply filters immediately
+    if (viewControls.value) {
+      applyQueryFilters(query)
+    } else {
+      // Store query to apply when viewControls is ready
+      pendingQueryFilters.value = query
+    }
   },
   { immediate: true }
 )
@@ -1114,7 +1181,7 @@ const scheduleDelayedMapRefresh = useDebounceFn(async () => {
     for (let i = 0; i < unique.length; i += MAX_DELAYED_BATCH) {
       const chunk = unique.slice(i, i + MAX_DELAYED_BATCH)
       const res = await safeFrappeCall({
-        method: 'crm.crm.api.reminders.get_delayed_map',
+        method: 'crm.api.reminders.get_delayed_map',
         args: { lead_names: chunk },
       })
       Object.assign(freshMap, res?.message || {})

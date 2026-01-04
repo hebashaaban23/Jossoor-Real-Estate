@@ -24,8 +24,40 @@ def after_install():
     This function:
     1. Sets up OAuth Client for mobile API access
     2. Optionally generates API keys for eligible users
+    3. Sets refresh token expiry to 1 hour (3600 seconds)
     """
     frappe.log("Running CRM app post-install setup...")
+    
+    # OAuth refresh token expiry setting removed - using default Frappe behavior (infinite refresh tokens)
+    # try:
+    #     # Set refresh token expiry to 1 hour (3600 seconds)
+    #     import json
+    #     import os
+    #     
+    #     site_config_path = frappe.get_site_path("site_config.json")
+    #     
+    #     # Read existing config
+    #     if os.path.exists(site_config_path):
+    #         with open(site_config_path, 'r') as f:
+    #             config = json.load(f)
+    #     else:
+    #         config = {}
+    #     
+    #     # Update config
+    #     config['oauth_refresh_token_expiry'] = 3600
+    #     
+    #     # Write back
+    #     with open(site_config_path, 'w') as f:
+    #         json.dump(config, f, indent=2)
+    #     
+    #     # Update frappe.conf
+    #     frappe.conf.oauth_refresh_token_expiry = 3600
+    #     
+    #     frappe.log("✅ Refresh token expiry set to 1 hour (3600 seconds)")
+    #     
+    # except Exception as e:
+    #     frappe.log_error(f"Failed to set refresh token expiry: {str(e)}", "CRM Install OAuth Config")
+    #     frappe.log(f"⚠️  Failed to set refresh token expiry: {str(e)}")
     
     try:
         # Bootstrap OAuth setup for this site

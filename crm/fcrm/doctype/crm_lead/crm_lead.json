@@ -18,6 +18,7 @@
   "job_title",
   "source",
   "assigned_to_display",
+  "assigned_date",
   "lead_owner",
   "fb_adset_id",
   "fb_campaign_id",
@@ -206,6 +207,11 @@
    "label": "Annual Revenue"
   },
   {
+   "fieldname": "assigned_date",
+   "fieldtype": "Data",
+   "label": "Assigned date"
+  },
+  {
    "fieldname": "lead_owner",
    "fieldtype": "Link",
    "label": "Lead Owner",
@@ -300,8 +306,8 @@
   {
    "fieldname": "sla_status",
    "fieldtype": "Select",
-   "label": "SLA Status",
-   "options": "\nFirst Response Due\nFailed\nFulfilled",
+   "label": "Lead Origin",
+   "options": "\u0639\u0645\u064a\u0644 \u0634\u0631\u0643\u0629\n\u0639\u0645\u064a\u0644 \u0645\u0648\u0638\u0641",
    "read_only": 1
   },
   {
@@ -691,7 +697,7 @@
  "image_field": "image",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-27 11:15:37.087172",
+ "modified": "2025-12-28 13:48:04.086359",
  "modified_by": "Administrator",
  "module": "FCRM",
  "name": "CRM Lead",
@@ -737,7 +743,6 @@
  "sender_name_field": "first_name",
  "show_name_in_global_search": 1,
  "show_preview_popup": 1,
- "show_title_field_in_link": 1,
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],

@@ -124,3 +124,27 @@ def lead_filter_options():
         "has_budget": bool(budget_field),
         "has_space": bool(space_field),
     }
+
+
+@frappe.whitelist()
+def drawer_options():
+    """
+    Simplified version for drawer UI - returns arrays of string values.
+    Returns:
+    {
+      projects: [str],
+      locations: [str],
+      source: [str],
+      lead_origin: [str],
+      lead_type: [str]
+    }
+    """
+    opts = lead_filter_options()
+    
+    return {
+        "projects": [item["value"] for item in opts.get("project", [])],
+        "locations": [item["value"] for item in opts.get("territory", [])],
+        "source": [item["value"] for item in opts.get("lead_source", [])],
+        "lead_origin": [item["value"] for item in opts.get("lead_origin", [])],
+        "lead_type": [item["value"] for item in opts.get("lead_type", [])],
+    }

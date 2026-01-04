@@ -13,7 +13,7 @@
     </template>
     <template #body="{ isOpen }">
       <AssignToBody
-        v-show="isOpen"
+        v-if="isOpen"
         v-model="assignees"
         :docname="docname"
         :doctype="doctype"
@@ -55,8 +55,12 @@ async function saveAssignees(
   addAssignees,
   removeAssignees,
 ) {
-  removedAssignees.length && (await removeAssignees.submit(removedAssignees))
-  addedAssignees.length && (await addAssignees.submit(addedAssignees))
+  if (removedAssignees.length) {
+    await removeAssignees.submit(removedAssignees)
+  }
+  if (addedAssignees.length) {
+    await addAssignees(addedAssignees)
+  }
 
   const nextAssignee = assignees.value.find(
     (a) => a.name !== document.doc[ownerField.value],

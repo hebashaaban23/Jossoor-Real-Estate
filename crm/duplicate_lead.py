@@ -117,7 +117,10 @@ def check_duplicates(doc, method):
         doc.duplicated_from = None
 
 def append_to_original_lead(doc, method):
-    """after_insert / on_submit: append duplicate lead into original's child table."""
+	"""after_insert / on_submit: append duplicate lead into original's child table."""
+	frappe.db.after_commit(lambda: _append_to_original(doc))
+
+def _append_to_original(doc):
     if not doc or not getattr(doc, "is_duplicate", 0):
         return
 

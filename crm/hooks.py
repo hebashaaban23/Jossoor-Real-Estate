@@ -163,7 +163,13 @@ doc_events = {
     },
     # بثّ الريـال-تايم للجرس عند إنشاء Notification Log
     "Notification Log": {
-        "after_insert": ["crm.api.notifications.broadcast_log_realtime"],
+
+          "after_insert": [
+            "crm.api.notifications.broadcast_log_realtime",
+            "crm.api.firebase.send_push_for_notification_log",
+        ]
+
+
     },
     # جديد: أي تغيير في الـ Reminder يعيد حساب Delayed لأحدث تعليق على نفس المستند
     "Reminder": {
@@ -171,14 +177,25 @@ doc_events = {
         "on_update": ["crm.api.reminders.recalc_from_reminder"],
         "on_trash": ["crm.api.reminders.recalc_from_reminder"],
     },
+    # التحقق من due_date وتحديث الحالة إلى Backlog تلقائياً
+    "CRM Task": {
+        "on_load": ["crm.api.task_status.check_and_update_task_status"],
+        "on_update": ["crm.api.task_status.check_and_update_task_status"],
+    },
+
 }
+
+
 
 # Scheduled Tasks
 # ---------------
 # تشغيل الريمايندر كل دقيقة (runner داخلي بدون تعديل Core)
 scheduler_events = {
     "cron": {
-        "*/1 * * * *": ["crm.reminder_runner.run_reminders_locked"]
+        "*/1 * * * *": [
+            "crm.reminder_runner.run_reminders_locked",
+            "crm.api.task_status.update_overdue_tasks"  # تحديث المهام المتأخرة كل دقيقة
+        ]
     }
 }
 
@@ -190,14 +207,17 @@ scheduler_events = {
 # -------
 patches = [
     "crm.patches.v1_0.ensure_mobile_oauth_and_tokens",
+    "crm.patches.v1_0.add_late_status_to_crm_task",
+    # "crm.patches.v1_0.set_refresh_token_expiry_1_hour",  # Disabled - using default Frappe behavior (infinite refresh tokens)
 ]
 
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-#   "frappe.desk.doctype.event.event.get_events": "crm.event.get_events"
-# }
+#override_whitelisted_methods = {
+   #"frappe.desk.doctype.event.event.get_events": "crm.event.get_events"
+
+ #}
 # Overriding Methods
 # ------------------------------
 
@@ -210,11 +230,20 @@ patches = [
 
 # auto_cancel_exempted_doctypes = ["Auto Repeat"]
 
-# ignore_links_on_delete = ["Communication", "ToDo"]
+# Ignore these doctypes when checking for linked documents before delete
+# This allows deleting CRM Lead and CRM Task even if they have linked notifications, todos, etc.
+ignore_links_on_delete = [
+	"Communication", 
+	"ToDo", 
+	"Notification Log", 
+	"CRM Notification", 
+	"Comment", 
+	"DocShare"
+]
 
 # Request Events
 # --------------
-# before_request = ["crm.utils.before_request"]
+# before_request = ["crm.oauth_fix.ensure_oauth_fix_applied"]  # Disabled - using default Frappe OAuth behavior
 # after_request  = ["crm.utils.after_request"]
 
 # Job Events
@@ -233,6 +262,9 @@ patches = [
 # auth_hooks = ["crm.auth.validate"]
 
 after_migrate = ["crm.fcrm.doctype.fcrm_settings.fcrm_settings.after_migrate"]
+
+# OAuth Fix - Disabled - using default Frappe behavior (infinite refresh tokens)
+# boot_session = ["crm.oauth_fix.ensure_oauth_fix_applied"]  # Disabled - using default Frappe OAuth behavior
 
 standard_dropdown_items = [
     {
@@ -296,4 +328,6 @@ fixtures = [
     },
     {"dt": "Server Script", "filters": [["name", "in", ["Hot Leads", "FCRM Note For Hot Leads", "ToDo For Hot Leads"]]]},
     {"dt": "DocType", "filters": [["name", "in", ["Saved Filter"]]]},
+    {"dt": "DocType", "filters": [["name", "in", ["CRM Lead"]]]},
+
 ]

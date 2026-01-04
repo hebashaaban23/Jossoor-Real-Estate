@@ -11,8 +11,9 @@ except ImportError:
     from frappe.utils.modules import get_modules_from_all_apps_for_user
 from frappe.config import get_modules_from_all_apps_for_user
 from frappe.utils.telemetry import POSTHOG_HOST_FIELD, POSTHOG_PROJECT_FIELD
-from .lead_filters import lead_filter_options  # noqa
+from . import lead_filters  # noqa
 from . import mobile_api  # noqa
+from . import reminders  # noqa
 
 
 

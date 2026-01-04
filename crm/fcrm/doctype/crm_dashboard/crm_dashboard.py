@@ -23,18 +23,21 @@ def default_manager_dashboard_layout():
 			"name": "total_leads",
 			"type": "number_chart",
 			"tooltip": "Total number of leads",
+			"link": {"name": "Leads"},  # Navigate to Leads page without filter
 			"layout": {"x": 0, "y": 0, "w": 5, "h": 3, "i": "total_leads"}
 		},
 		{
 			"name": "delayed_leads",
 			"type": "number_chart",
 			"tooltip": "Total number of delayed leads",
+			"link": {"name": "Leads", "query": {"delayed": "1"}},  # Navigate to Leads with delayed filter
 			"layout": {"x": 5, "y": 0, "w": 5, "h": 3, "i": "delayed_leads"}
 		},
 		{
 			"name": "total_deals",
 			"type": "number_chart",
 			"tooltip": "Total number of deals",
+			"link": {"name": "Deals"},  # Navigate to Deals page
 			"layout": {"x": 10, "y": 0, "w": 5, "h": 3, "i": "total_deals"}
 		},
 		{
@@ -73,6 +76,7 @@ def default_manager_dashboard_layout():
 			"type": "number_chart",
 			"tooltip": f"{status_name} leads",
 			"status": status_name,  # Store the actual status name
+			"link": {"name": "Leads", "query": {"status": status_name}},  # Navigate to Leads with status filter
 			"layout": {
 				"x": current_x,
 				"y": current_y,

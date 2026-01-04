@@ -53,6 +53,7 @@ def _map_route(dt: Optional[str]) -> Optional[str]:
     return CRM_ROUTE.get(dt) if dt else None
 
 
+
 def _nlog_to_portal_dict(row: Dict[str, Any], seen_col: Optional[str]) -> Dict[str, Any]:
     ref_dt = row.get("document_type")
     ref_name = row.get("document_name")
@@ -62,15 +63,22 @@ def _nlog_to_portal_dict(row: Dict[str, Any], seen_col: Optional[str]) -> Dict[s
 
     to_user = row.get("for_user") or row.get("owner")
 
+    is_read = _bool_seen(row, seen_col)
+
     return {
+        "id": row.get("name"),  # id عام
+        "name": row.get("name"),
         "creation": row.get("creation"),
         "from_user": {
             "name": row.get("owner"),
             "full_name": frappe.get_value("User", row.get("owner"), "full_name"),
         },
         "type": "reminder" if _looks_like_reminder(row) else (row.get("type") or "system"),
+        
+
         "to_user": to_user,
-        "read": _bool_seen(row, seen_col),
+        "read": is_read,
+        "unread": not is_read,
         "hash": "#reminder" if _looks_like_reminder(row) else "",
         "notification_text": _text_from_nlog(row),
         "notification_type_doctype": ref_dt,
@@ -79,8 +87,10 @@ def _nlog_to_portal_dict(row: Dict[str, Any], seen_col: Optional[str]) -> Dict[s
         "reference_name": ref_name,
         "route_name": route_name,                # 'Lead' | 'Deal' | None
         "source": "Notification Log",
-        "name": row.get("name"),
     }
+
+
+
 
 
 def get_hash(n):
@@ -108,14 +118,9 @@ def _get_unseen_count_for(user: str) -> int:
     if seen_col:
         fields.append(seen_col)
 
-    or_filters = [{"for_user": user}, {"owner": user}]
-    if _has("from_user"):
-        or_filters.append({"from_user": user})
-
     rows = frappe.get_all(
         "Notification Log",
-        filters={},
-        or_filters=or_filters,
+        filters={"for_user": user},
         fields=fields,
         order_by="creation desc",
         limit_page_length=500,
@@ -159,11 +164,16 @@ def _broadcast_count(user: str):
 # ----------------------- New Portal Endpoints -----------------------
 
 @frappe.whitelist()
-def list_portal_notifications(limit: int = 50, include_legacy: int = 1):
+def list_portal_notifications(
+    limit: int = 20,
+    include_legacy: int = 1,
+    unread_only: int = 0,
+    before: Optional[str] = None,
+):
     """
     يرجّع إشعارات المستخدم من Notification Log (+ اختياري CRM Notification).
-    - يلتقط السجلات للمستخدم سواء كان for_user أو owner أو from_user.
-    - يضيف Route فقط لو document_type من Doctypes الـCRM.
+    - unread_only = 1 → يرجع فقط الغير مقروءة
+    - before = ISO datetime string → يرجع الإشعارات الأقدم من التاريخ ده (لـ pagination)
     """
     user = frappe.session.user
     seen_col = _seen_column_name()
@@ -184,14 +194,18 @@ def list_portal_notifications(limit: int = 50, include_legacy: int = 1):
     if seen_col:
         fields.append(seen_col)
 
-    or_filters = [{"for_user": user}, {"owner": user}]
-    if _has("from_user"):
-        or_filters.append({"from_user": user})
+    filters = {}
+    if before:
+        filters["creation"] = ["<", before]
+
+    if unread_only and seen_col:
+        filters[seen_col] = 0
+
+    filters["for_user"] = user
 
     base_rows = frappe.get_all(
         "Notification Log",
-        filters={},
-        or_filters=or_filters,
+        filters=filters,
         fields=fields,
         order_by="creation desc",
         limit_page_length=max(limit, 200),
@@ -238,6 +252,46 @@ def mark_portal_seen(name: str, source: str = "Notification Log"):
     frappe.throw(f"Unknown source: {source}")
 
 
+
+@frappe.whitelist()
+def mark_all_portal_seen(source: str = "Notification Log"):
+    """
+    تعليم كل إشعارات المستخدم كمقروءة (Notification Log / CRM Notification).
+    مفيدة للـ mobile لما يعمل 'Mark all as read'.
+    """
+    user = frappe.session.user
+    updated = 0
+
+    if source == "Notification Log":
+        seen_col = _seen_column_name()
+        if not seen_col:
+            frappe.throw("No 'seen' or 'read' column defined on Notification Log")
+
+        names = frappe.get_all(
+            "Notification Log",
+            filters={"for_user": user, seen_col: 0},
+            pluck="name",
+            limit_page_length=1000,
+        )
+        for name in names:
+            frappe.db.set_value("Notification Log", name, seen_col, 1)
+        updated += len(names)
+
+    elif source == "CRM Notification" and frappe.db.table_exists("CRM Notification"):
+        names = frappe.get_all(
+            "CRM Notification",
+            filters={"to_user": user, "read": 0},
+            pluck="name",
+            limit_page_length=1000,
+        )
+        for name in names:
+            frappe.db.set_value("CRM Notification", name, "read", 1)
+        updated += len(names)
+
+    _broadcast_count(user)
+    return {"ok": True, "updated": updated}
+
+
 # -------------------- Backward-compatible APIs ---------------------
 
 @frappe.whitelist()
@@ -265,14 +319,9 @@ def list_logs(limit: int = 30):
     if seen_col:
         fields.append(seen_col)
 
-    or_filters = [{"for_user": user}, {"owner": user}]
-    if _has("from_user"):
-        or_filters.append({"from_user": user})
-
     rows = frappe.get_all(
         "Notification Log",
-        filters={},
-        or_filters=or_filters,
+        filters={"for_user": user},
         fields=fields,
         order_by="creation desc",
         limit_page_length=limit,
@@ -308,9 +357,12 @@ def mark_seen(name: str):
     return {"ok": True}
 
 
-# ------- (اختياري) التوافق الخلفي مع CRM Notification القديمة -------
+
 
 def _list_crm_notifications(limit: int = 50) -> List[Dict[str, Any]]:
+    if not frappe.db.table_exists("CRM Notification"):
+        return []
+
     Notification = frappe.qb.DocType("CRM Notification")
     query = (
         frappe.qb.from_(Notification)
@@ -322,8 +374,11 @@ def _list_crm_notifications(limit: int = 50) -> List[Dict[str, Any]]:
 
     out = []
     for n in notifications[:limit]:
+        is_read = bool(n.read)
         out.append(
             {
+                "id": n.name,
+                "name": n.name,
                 "creation": n.creation,
                 "from_user": {
                     "name": n.from_user,
@@ -331,7 +386,8 @@ def _list_crm_notifications(limit: int = 50) -> List[Dict[str, Any]]:
                 },
                 "type": n.type,
                 "to_user": n.to_user,
-                "read": n.read,
+                "read": is_read,
+                "unread": not is_read,
                 "hash": get_hash(n),
                 "notification_text": n.notification_text,
                 "notification_type_doctype": n.notification_type_doctype,
@@ -344,7 +400,6 @@ def _list_crm_notifications(limit: int = 50) -> List[Dict[str, Any]]:
                     "Deal" if n.reference_doctype == "CRM Deal" else "Lead"
                 ),
                 "source": "CRM Notification",
-                "name": n.name,
             }
         )
     return out
@@ -383,3 +438,59 @@ def broadcast_log_realtime(doc, method=None):
     if not target_user:
         return
     _broadcast_count(target_user)
+
+
+
+@frappe.whitelist()
+def notifications_overview(
+    limit: int = 20,
+    include_legacy: int = 1,
+    unread_only: int = 0,
+    before: Optional[str] = None,
+):
+    """
+    يرجّع:
+    - unseen_count
+    - items (نفس فورمات list_portal_notifications)
+    """
+    user = frappe.session.user
+    items = list_portal_notifications(
+        limit=limit,
+        include_legacy=include_legacy,
+        unread_only=unread_only,
+        before=before,
+    )
+    return {
+        "user": user,
+        "unseen_count": _get_unseen_count_for(user),
+        "items": items,
+    }
+
+
+# ----------------------- Assignment API (for Mobile) -----------------------
+
+@frappe.whitelist(methods=["POST"])
+def assign_doc(doctype: str, name: str, assign_to: str, description: str = ""):
+    """
+    Create an official Frappe assignment (ToDo) and generate Notification Log.
+    This is the correct way to make "assignment notifications" fire.
+    """
+    if not doctype or not name or not assign_to:
+        frappe.throw("doctype, name, and assign_to are required")
+
+    # assign_to may come as comma-separated string
+    users = [u.strip() for u in (assign_to or "").split(",") if u.strip()]
+    if not users:
+        frappe.throw("assign_to is empty")
+
+    from frappe.desk.form.assign_to import add as assign_add
+
+    assign_add({
+        "assign_to": users,
+        "doctype": doctype,
+        "name": name,
+        "description": description or "New assignment",
+        "notify": 1,  # IMPORTANT: creates Notification Log / in-app notification
+    })
+
+    return {"ok": True, "assigned_to": users, "doctype": doctype, "name": name}

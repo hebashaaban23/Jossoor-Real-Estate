@@ -113,6 +113,14 @@
             :formatter="(date) => getFormat(date, '', true, true)"
             input-class="border-none"
           />
+          <DateTimePicker
+  v-model="reminderAt"
+  class="datepicker w-36"
+  :placeholder="__('Reminder time')"
+  :formatter="(date) => getFormat(date, '', true, true)"
+  input-class="border-none"
+/>
+
 
           <Dropdown :options="taskPriorityOptions(updateTaskPriority)">
             <Button :label="_task.priority" class="justify-between w-full">
@@ -146,6 +154,7 @@ import { useRouter } from 'vue-router'
 import { Autocomplete } from 'frappe-ui'
 
 
+const reminderAt = ref(null)
 
 const bootstrapping = ref(false)
 function attendeesToSelected(arr = []) {
@@ -188,7 +197,7 @@ const _task = ref({
 })
 
 /** show attendees only for meetings */
-const showAttendees = computed(() => _task.value?.task_type === 'Meeting')
+const showAttendees = computed(() => _task.value?.task_type === 'team meeting')
 
 function updateTaskStatus(status) {
   _task.value.status = status
@@ -197,31 +206,36 @@ function updateTaskPriority(priority) {
   _task.value.priority = priority
 }
 
+
 function taskTypeOptions(callback) {
   return [
-    { label: __('Call'), value: 'Call', onClick: () => callback('Call') },
-    { label: __('Meeting'), value: 'Meeting', onClick: () => callback('Meeting') },
-    { label: __('Property Showing'), value: 'Property Showing', onClick: () => callback('Property Showing') },
+    { label: __('Call'), value: 'call', onClick: () => callback('call') },
+    { label: __('Meeting'), value: 'team meeting', onClick: () => callback('team meeting') },
+    { label: __('Property Showing'), value: 'property showing', onClick: () => callback('property showing') },
   ]
 }
 
+
 const typeLabel = (v) =>
   ({
-    Call: __('Call'),
-    Meeting: __('Meeting'),
-    'Property Showing': __('Property Showing'),
+    'call': __('Call'),
+    'team meeting': __('Meeting'),
+    'property showing': __('Property Showing'),
   }[v] || v)
 
 function updateTaskType(value) {
   _task.value.task_type = value
-  //_task.value.title = typeLabel(value)
-  if (!_task.value.title) _task.value.title = typeLabel(value)
 
-  if (value !== 'Meeting') {
+  if (!_task.value.title) {
+    _task.value.title = typeLabel(value)
+  }
+
+  if (value !== 'team meeting') {
     _task.value.meeting_attendees = []
     selectedUsers.value = []
   }
 }
+
 
 
 
@@ -251,6 +265,14 @@ function redirect() {
   router.push({ name, params })
 }
 
+function normalizeDatetime(val) {
+  if (!val) return null
+  return typeof val === 'string'
+    ? val
+    : getFormat(val, 'YYYY-MM-DD HH:mm:ss')
+}
+
+
 async function updateTask() {
   error.value = ''
 
@@ -258,7 +280,7 @@ async function updateTask() {
     _task.value.assigned_to = getUser().name
   }
 
-  const isMeeting = _task.value.task_type === 'Meeting'
+  const isMeeting = _task.value.task_type === 'team meeting'
   const hasAttendees =
     Array.isArray(_task.value.meeting_attendees) && _task.value.meeting_attendees.length > 0
 
@@ -285,6 +307,39 @@ async function updateTask() {
         tasks.value?.reload?.()
         emit('after', saved)
       }
+
+      if (isMeeting || !isMeeting) {
+  const reminders = await call('frappe.client.get_list', {
+    doctype: 'Reminder',
+    filters: {
+      reference_doctype: 'CRM Task',
+      reference_docname: _task.value.name,
+    },
+    fields: ['name'],
+    limit: 1,
+  })
+
+  if (reminderAt.value) {
+    if (reminders.length) {
+      await call('frappe.client.set_value', {
+        doctype: 'Reminder',
+        name: reminders[0].name,
+        fieldname: { remind_at: normalizeDatetime(reminderAt.value) },
+      })
+    } else {
+      await call('frappe.client.insert', {
+        doc: {
+          doctype: 'Reminder',
+          user: _task.value.assigned_to,
+          remind_at: reminderAt.value,
+          reference_doctype: 'CRM Task',
+          reference_docname: _task.value.name,
+        },
+      })
+    }
+  }
+}
+
     } else {
       
       const payload = {
@@ -340,9 +395,24 @@ async function updateTask() {
       tasks.value?.reload?.()
       emit('after', d, true)
     }
+    show.value = false 
+
+    if (d?.name && reminderAt.value) {
+  await call('frappe.client.insert', {
+    doc: {
+      doctype: 'Reminder',
+      user: _task.value.assigned_to || getUser().name,
+      remind_at: normalizeDatetime(reminderAt.value),
+      description: _task.value.title,
+      reference_doctype: 'CRM Task',
+      reference_docname: d.name,
+    },
+  })
+}
+
   }
 
-  show.value = false
+  
 }
 
 
@@ -353,6 +423,7 @@ async function render() {
   try {
 
     if (!props.task?.name) {
+      reminderAt.value = null 
       _task.value = {
         title: '',
         description: '',
@@ -376,6 +447,21 @@ async function render() {
       // حرّك attendees للـ Autocomplete
       selectedUsers.value = attendeesToSelected(full.meeting_attendees || [])
       editMode.value = true
+      const reminders = await call('frappe.client.get_list', {
+  doctype: 'Reminder',
+  filters: {
+    reference_doctype: 'CRM Task',
+    reference_docname: props.task.name,
+  },
+  fields: ['name', 'remind_at'],
+  limit: 1,
+})
+
+if (reminders?.length) {
+  reminderAt.value = reminders[0].remind_at
+}
+
+    
     }
 
     await nextTick()

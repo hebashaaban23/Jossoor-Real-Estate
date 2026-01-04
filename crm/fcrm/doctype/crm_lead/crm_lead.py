@@ -35,6 +35,26 @@ class CRMLead(Document):
 	def before_save(self):
 		self.apply_sla()
 
+	def on_trash(self):
+		# clear references in other leads
+		frappe.db.set_value("CRM Lead", {"duplicated_from": self.name}, "duplicated_from", None)
+		
+		# remove from duplicate lead entry
+		frappe.db.delete("Duplicate Lead Entry", {"lead": self.name})
+
+		# Unlink other documents
+		for doctype in ["CRM Deal", "CRM Task", "Reservation", "Payment Plan"]:
+			if frappe.db.get_value(doctype, {"lead": self.name}):
+				frappe.db.set_value(doctype, {"lead": self.name}, "lead", None)
+
+		# Delete Reminders
+		if frappe.db.exists("DocType", "Reminder"):
+			# Check which field exists
+			if frappe.db.has_column("Reminder", "reference_doctype"):
+				frappe.db.delete("Reminder", {"reference_doctype": "CRM Lead", "reference_name": self.name})
+			else:
+				frappe.db.delete("Reminder", {"reminder_doctype": "CRM Lead", "reminder_docname": self.name})
+
 	def set_full_name(self):
 		if self.first_name:
 			self.lead_name = " ".join(
@@ -87,6 +107,11 @@ class CRMLead(Document):
 					return
 
 		assign({"assign_to": [agent], "doctype": "CRM Lead", "name": self.name})
+		
+		# Set assigned_date if not already set
+		if not self.assigned_date:
+			from frappe.utils import today
+			self.db_set("assigned_date", today())
 
 	def share_with_agent(self, agent):
 		if not agent:

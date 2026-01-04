@@ -12,6 +12,7 @@
     v-model:assignees="bulkAssignees"
     :docs="selectedValues"
     :doctype="doctype"
+    :clearExisting="shouldClearExisting"
     @reload="reload"
   />
   <DeleteLinkedDocModal
@@ -122,41 +123,25 @@ function deleteValues(selections, unselectAll) {
 
 const showAssignmentModal = ref(false)
 const bulkAssignees = ref([])
+const shouldClearExisting = ref(false)
 
 function assignValues(selections, unselectAll) {
+  shouldClearExisting.value = false
+  bulkAssignees.value = []
   showAssignmentModal.value = true
-  selectedValues.value = selections
+  // Convert Set to Array if needed
+  selectedValues.value = selections instanceof Set ? Array.from(selections) : (Array.isArray(selections) ? selections : [])
   unselectAllAction.value = unselectAll
 }
 
 function clearAssignemnts(selections, unselectAll) {
-  $dialog({
-    title: __('Clear Assignment'),
-    message: __('Are you sure you want to clear assignment for {0} item(s)?', [
-      selections.size,
-    ]),
-    variant: 'solid',
-    theme: 'red',
-    actions: [
-      {
-        label: __('Clear Assignment'),
-        variant: 'solid',
-        theme: 'red',
-        onClick: (close) => {
-          capture('bulk_clear_assignment')
-          call('frappe.desk.form.assign_to.remove_multiple', {
-            doctype: props.doctype,
-            names: JSON.stringify(Array.from(selections)),
-            ignore_permissions: true,
-          }).then(() => {
-            toast.success(__('Assignment cleared successfully'))
-            reload(unselectAll)
-            close()
-          })
-        },
-      },
-    ],
-  })
+  // Open assignment modal with clearExisting flag to allow reassigning
+  shouldClearExisting.value = true
+  bulkAssignees.value = [] // Start with empty assignees (clearing old assignments)
+  showAssignmentModal.value = true
+  // Convert Set to Array if needed
+  selectedValues.value = selections instanceof Set ? Array.from(selections) : (Array.isArray(selections) ? selections : [])
+  unselectAllAction.value = unselectAll
 }
 
 const customBulkActions = ref([])

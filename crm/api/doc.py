@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 import frappe
 from frappe import _
@@ -372,10 +373,31 @@ def get_data(
 
     # ---------- LIST / GROUP VIEW ----------
     if view_type != "kanban":
+        # تحديث المهام المتأخرة قبل قراءة البيانات (لـ CRM Task فقط)
+        if doctype == "CRM Task":
+            try:
+                from frappe.utils import now_datetime
+                current_dt = now_datetime()
+                # تحديث مباشر في قاعدة البيانات
+                frappe.db.sql(
+                    """
+                    UPDATE `tabCRM Task`
+                    SET status = 'late'
+                    WHERE due_date < %s
+                    AND status NOT IN ('Done', 'late')
+                    AND due_date IS NOT NULL
+                """,
+                    (current_dt,),
+                    as_dict=False,
+                )
+                frappe.db.commit()
+            except Exception as e:
+                frappe.log_error(f"Error updating overdue tasks in list view: {str(e)}")
+                pass
+
         if columns or rows:
             custom_view = True
             is_default = False
-            # columns/rows already normalized to lists above
 
         if not columns:
             columns = [
@@ -420,6 +442,26 @@ def get_data(
         if group_by_field and group_by_field not in rows:
             rows.append(group_by_field)
 
+        # لـ CRM Task: تحديث قاعدة البيانات أولاً ثم قراءة البيانات
+        if doctype == "CRM Task":
+            from frappe.utils import now_datetime
+            current_dt = now_datetime()
+            try:
+                frappe.db.sql(
+                    """
+                    UPDATE `tabCRM Task`
+                    SET status = 'late'
+                    WHERE due_date < %s
+                    AND status NOT IN ('Done', 'late')
+                    AND due_date IS NOT NULL
+                """,
+                    (current_dt,),
+                )
+                frappe.db.commit()
+                frappe.clear_cache(doctype="CRM Task")
+            except Exception as e:
+                frappe.log_error(f"Error updating overdue tasks: {str(e)}")
+
         data = (
             frappe.get_list(
                 doctype,
@@ -434,6 +476,28 @@ def get_data(
 
     # ---------- KANBAN VIEW ----------
     if view_type == "kanban":
+        # تحديث المهام المتأخرة قبل قراءة البيانات (لـ CRM Task فقط)
+        if doctype == "CRM Task":
+            try:
+                from frappe.utils import now_datetime
+                current_dt = now_datetime()
+                frappe.db.sql(
+                    """
+                    UPDATE `tabCRM Task`
+                    SET status = 'late'
+                    WHERE due_date < %s
+                    AND status NOT IN ('Done', 'late')
+                    AND due_date IS NOT NULL
+                """,
+                    (current_dt,),
+                    as_dict=False,
+                )
+                frappe.db.commit()
+                frappe.clear_cache(doctype="CRM Task")
+            except Exception as e:
+                frappe.log_error(f"Error updating overdue tasks in kanban view: {str(e)}")
+                pass
+
         if not rows:
             rows = default_rows
 
@@ -710,7 +774,11 @@ def get_fields_meta(doctype, restricted_fieldtypes=None, as_array=False, only_re
 
 @frappe.whitelist(allow_guest=True)
 def remove_assignments(doctype, name, assignees, ignore_permissions=False):
-    assignees = json.loads(assignees)
+    # Handle both JSON string and already-decoded list
+    if isinstance(assignees, str):
+        assignees = json.loads(assignees)
+    elif not isinstance(assignees, list):
+        frappe.throw(_("assignees must be a list or JSON string"))
 
     if not assignees:
         return
@@ -724,6 +792,46 @@ def remove_assignments(doctype, name, assignees, ignore_permissions=False):
             status="Cancelled",
             ignore_permissions=ignore_permissions,
         )
+
+
+@frappe.whitelist()
+def remove_multiple_assignments(doctype, names, ignore_permissions=False):
+    """
+    Remove all assignments from multiple documents.
+    Used when clearing assignments from bulk operations.
+    """
+    if isinstance(names, str):
+        names = json.loads(names)
+    elif not isinstance(names, list):
+        frappe.throw(_("names must be a list or JSON string"))
+
+    if not names:
+        return
+
+    # Get all ToDo records for these documents
+    todos = frappe.get_all(
+        "ToDo",
+        filters={
+            "reference_type": doctype,
+            "reference_name": ["in", names],
+            "status": ["!=", "Cancelled"],
+        },
+        fields=["name", "allocated_to", "reference_name"],
+    )
+
+    # Cancel all ToDo records
+    # Cancel all ToDo records
+    for todo in todos:
+        set_status(
+            doctype,
+            todo["reference_name"],
+            todo=todo["name"],
+            assign_to=todo["allocated_to"],
+            status="Cancelled",
+            ignore_permissions=ignore_permissions,
+        )
+
+    return {"ok": True, "count": len(todos)}
 
 
 @frappe.whitelist(allow_guest=True)
@@ -745,6 +853,182 @@ def get_assigned_users(doctype, name, default_assigned_to=None):
     if not users and default_assigned_to:
         users = [default_assigned_to]
     return users
+
+
+# -----------------------------
+# FIXED for Frappe v15
+# - frappe.has_permission() does NOT accept name=
+# - use doc= (Document) for permission check
+# - supports both name and names (bulk)
+# - accepts assign_to as list / string / JSON string
+# - optional ignore_permissions param
+# -----------------------------
+@frappe.whitelist()
+def assign_without_rule(
+    doctype: str,
+    assign_to,
+    name: Optional[str] = None,
+    names: Optional[str] = None,
+    description: str = "",
+    ignore_permissions: bool = False,
+    **kwargs,
+):
+    if not doctype:
+        frappe.throw(_("doctype is required"))
+
+    # -------------------------
+    # Normalize assign_to
+    # -------------------------
+    if isinstance(assign_to, str):
+        try:
+            assign_to = frappe.parse_json(assign_to)
+        except Exception:
+            assign_to = [assign_to]
+    elif not isinstance(assign_to, list):
+        assign_to = [assign_to] if assign_to else []
+
+    users = [u for u in assign_to if u]
+    if not users:
+        frappe.throw(_("assign_to is required and cannot be empty"))
+
+    # -------------------------
+    # Normalize document names
+    # -------------------------
+    doc_names = []
+
+    if names:
+        if isinstance(names, str):
+            try:
+                names = frappe.parse_json(names)
+            except Exception:
+                names = [names]
+        if not isinstance(names, list):
+            names = [names] if names else []
+        doc_names = [n for n in names if n]
+    elif name:
+        doc_names = [name]
+
+    # fallback: kwargs keys
+    if not doc_names:
+        for key in ["names", "name", "selected_items", "selected", "items", "docnames", "document_names"]:
+            if key in kwargs and kwargs.get(key):
+                value = kwargs.get(key)
+                if isinstance(value, str):
+                    try:
+                        value = frappe.parse_json(value)
+                    except Exception:
+                        value = [value]
+                if isinstance(value, list):
+                    doc_names = [
+                        (item.get("name") if isinstance(item, dict) else str(item))
+                        for item in value
+                        if item
+                    ]
+                else:
+                    doc_names = [str(value)]
+                doc_names = [n for n in doc_names if n]
+                if doc_names:
+                    break
+
+    # fallback: form_dict keys
+    if not doc_names:
+        form_dict = frappe.form_dict or {}
+        for key in ["names", "name", "selected_items", "selected", "items", "docnames", "document_names"]:
+            if key in form_dict and form_dict.get(key):
+                value = form_dict.get(key)
+                if isinstance(value, str):
+                    try:
+                        value = frappe.parse_json(value)
+                    except Exception:
+                        value = [value]
+                if isinstance(value, list):
+                    doc_names = [
+                        (item.get("name") if isinstance(item, dict) else str(item))
+                        for item in value
+                        if item
+                    ]
+                else:
+                    doc_names = [str(value)]
+                doc_names = [n for n in doc_names if n]
+                if doc_names:
+                    break
+
+    if not doc_names:
+        try:
+            frappe.log_error(
+                f"assign_without_rule: missing 'name' or 'names' param. doctype={doctype}",
+                "assign_without_rule missing names",
+            )
+        except Exception:
+            pass
+
+        frappe.throw(
+            _(
+                "Either 'name' (for single document) or 'names' (for bulk assignment) parameter is required. "
+                "For bulk assignment from a list view, pass 'names' as a JSON array of document names."
+            ),
+            frappe.ValidationError,
+        )
+
+    # -------------------------
+    # Assign using standard assign_to.add
+    # -------------------------
+    from frappe.desk.form.assign_to import add as add_assignment
+
+    original_flag = getattr(frappe.flags, "ignore_assign_rule", None)
+    frappe.flags.ignore_assign_rule = True
+
+    assigned_count = 0
+    skipped_no_permission = 0
+
+    try:
+        for doc_name in doc_names:
+            # ✅ Correct permission check for Frappe v15
+            if not ignore_permissions:
+                try:
+                    doc = frappe.get_doc(doctype, doc_name)
+                except Exception:
+                    frappe.log_error(
+                        f"assign_without_rule: cannot load {doctype} {doc_name}",
+                        "assign_without_rule doc load error",
+                    )
+                    continue
+
+                if not frappe.has_permission(doctype, "read", doc=doc):
+                    skipped_no_permission += 1
+                    continue
+
+            for user in users:
+                try:
+                    add_assignment(
+                        {
+                            "doctype": doctype,
+                            "name": doc_name,
+                            "assign_to": [user],
+                            "description": description or "",
+                            "notify": 1,
+                        }
+                    )
+                    assigned_count += 1
+                except Exception as e:
+                    frappe.log_error(
+                        f"Failed to assign {doctype} {doc_name} to {user}: {str(e)}",
+                        "assign_without_rule error",
+                    )
+    finally:
+        if original_flag is None:
+            if hasattr(frappe.flags, "ignore_assign_rule"):
+                delattr(frappe.flags, "ignore_assign_rule")
+        else:
+            frappe.flags.ignore_assign_rule = original_flag
+
+    return {
+        "ok": True,
+        "assigned_to": users,
+        "assigned_count": assigned_count,
+        "skipped_no_permission": skipped_no_permission,
+        "doc_names": doc_names,
+    }
 
 
 @frappe.whitelist(allow_guest=True)

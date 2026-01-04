@@ -27,27 +27,30 @@
       </ListGroupRows>
     </div>
   </div>
-  <ListRows
+  <div
     v-else
-    ref="scrollContainer"
-    class="mx-3 sm:mx-5"
-    @scroll="handleScroll"
+    v-bind="containerProps"
+    class="mx-3 sm:mx-5 h-full overflow-y-auto"
   >
-    <ListRow
-      v-for="row in reactivieRows"
-      :key="row.name"
-      v-slot="{ idx, column, item }"
-      :row="row"
-    >
-      <slot v-bind="{ idx, column, item, row }" />
-    </ListRow>
-  </ListRows>
+    <div v-bind="wrapperProps">
+      <ListRow
+        v-for="item in list"
+        :key="item.data.name"
+        :row="item.data"
+        class="h-[45px]"
+      >
+        <template #default="{ idx, column, item: cellItem }">
+          <slot v-bind="{ idx, column, item: cellItem, row: item.data }" />
+        </template>
+      </ListRow>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { useStorage } from '@vueuse/core'
-import { ListRows, ListRow, ListGroupHeader, ListGroupRows } from 'frappe-ui'
-import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue'
+import { useVirtualList } from '@vueuse/core'
+import { ListRow, ListGroupHeader, ListGroupRows } from 'frappe-ui'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   rows: {
@@ -73,25 +76,11 @@ let showGroupedRows = computed(() => {
   )
 })
 
-const scrollPosition = useStorage(`scrollPosition${props.doctype}`, 0)
-const scrollContainer = ref(null)
-
-const handleScroll = () => {
-  if (scrollContainer.value) {
-    scrollPosition.value = scrollContainer.value.$el.scrollTop
+const { list, containerProps, wrapperProps } = useVirtualList(
+  reactivieRows,
+  {
+    itemHeight: 45,
+    overscan: 10,
   }
-}
-
-onBeforeUnmount(() => {
-  if (scrollContainer.value) {
-    scrollContainer.value.$el.removeEventListener('scroll', handleScroll)
-  }
-})
-
-onMounted(() => {
-  if (scrollContainer.value) {
-    scrollContainer.value.$el.addEventListener('scroll', handleScroll)
-    scrollContainer.value.$el.scrollTop = scrollPosition.value
-  }
-})
+)
 </script>

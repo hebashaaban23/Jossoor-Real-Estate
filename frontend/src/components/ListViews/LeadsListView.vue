@@ -285,7 +285,7 @@
 
   </ListView>
 
-  <ListFooter
+  <CustomListFooter
     v-if="pageLengthCount"
     class="border-t sm:px-5 px-3 py-2"
     v-model="pageLengthCount"
@@ -306,6 +306,7 @@ import PhoneIcon from '@/components/Icons/PhoneIcon.vue'
 import MultipleAvatar from '@/components/MultipleAvatar.vue'
 import ListBulkActions from '@/components/ListBulkActions.vue'
 import ListRows from '@/components/ListViews/ListRows.vue'
+import CustomListFooter from '@/components/CustomListFooter.vue'
 import {
   Avatar,
   ListView,
@@ -313,7 +314,6 @@ import {
   ListHeaderItem,
   ListSelectBanner,
   ListRowItem,
-  ListFooter,
   Tooltip,
   Button,
   FormControl,

@@ -81,6 +81,7 @@ declare module 'vue' {
     CreateDocumentModal: typeof import('./src/components/Modals/CreateDocumentModal.vue')['default']
     CRMLogo: typeof import('./src/components/Icons/CRMLogo.vue')['default']
     CustomActions: typeof import('./src/components/CustomActions.vue')['default']
+    CustomListFooter: typeof import('./src/components/CustomListFooter.vue')['default']
     DashboardGrid: typeof import('./src/components/Dashboard/DashboardGrid.vue')['default']
     DashboardIcon: typeof import('./src/components/Icons/DashboardIcon.vue')['default']
     DashboardItem: typeof import('./src/components/Dashboard/DashboardItem.vue')['default']

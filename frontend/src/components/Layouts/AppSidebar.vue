@@ -340,7 +340,7 @@ const allViews = computed(() => {
       label: 'Dashboard',
       icon: LucideLayoutDashboard,
       to: 'Dashboard',
-      condition: () => isManager(),
+      condition: () => isManager() || isSalesUser(),
     },
 
     // SINGLE Leads entry (still navigates to Leads via `to`) + has sublinks via `views`
@@ -454,7 +454,7 @@ function getIcon(routeName, icon) {
 
 // onboarding
 const { user } = sessionStore()
-const { users, isManager } = usersStore()
+const { users, isManager, isSalesUser } = usersStore()
 const { isOnboardingStepsCompleted, setUp } = useOnboarding('frappecrm')
 
 async function getFirstLead() {

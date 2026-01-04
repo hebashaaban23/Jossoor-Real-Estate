@@ -1,4 +1,4 @@
-<template>
+ <template>
   <div v-if="field.visible" class="field">
     <div v-if="field.fieldtype != 'Check'" class="mb-2 text-sm text-ink-gray-5">
       {{ __(field.label) }}

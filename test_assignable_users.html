@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Assignable Users API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Test Assignable Users API</h1>
+    <button onclick="testAPI()">Test API Call</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                // Get current site URL
+                const siteUrl = window.location.origin;
+                const method = 'crm.fcrm.permissions.assign_to.get_assignable_users';
+                const args = {
+                    doctype: 'CRM Lead',
+                    name: 'test-lead-name' // Replace with actual lead name
+                };
+                
+                // Get CSRF token
+                const csrfToken = window.frappe?.csrf_token || '';
+                
+                console.log('Testing API:', method);
+                console.log('Args:', args);
+                console.log('CSRF Token:', csrfToken ? 'Found' : 'Not found');
+                
+                // Try using frappe.call if available
+                if (window.frappe && typeof window.frappe.call === 'function') {
+                    console.log('Using window.frappe.call');
+                    const res = await window.frappe.call({
+                        method: method,
+                        args: args
+                    });
+                    console.log('Response:', res);
+                    resultDiv.innerHTML = `<pre class="success">Success!\n${JSON.stringify(res, null, 2)}</pre>`;
+                } else {
+                    // Fallback to fetch
+                    console.log('Using fetch');
+                    const url = `${siteUrl}/api/method/${method}`;
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    if (csrfToken) {
+                        headers['X-Frappe-CSRF-Token'] = csrfToken;
+                    }
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: headers,
+                        body: JSON.stringify(args)
+                    });
+                    
+                    const data = await response.json();
+                    console.log('Response:', data);
+                    
+                    if (response.ok) {
+                        resultDiv.innerHTML = `<pre class="success">Success!\n${JSON.stringify(data, null, 2)}</pre>`;
+                    } else {
+                        resultDiv.innerHTML = `<pre class="error">Error!\n${JSON.stringify(data, null, 2)}</pre>`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<pre class="error">Error: ${error.message}\n${error.stack}</pre>`;
+            }
+        }
+        
+        // Auto-test on load if frappe is available
+        window.addEventListener('load', () => {
+            console.log('Page loaded');
+            console.log('window.frappe:', window.frappe);
+            console.log('window.frappe.call:', typeof window.frappe?.call);
+        });
+    </script>
+</body>
+</html>
+

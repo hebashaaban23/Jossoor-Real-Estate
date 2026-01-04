@@ -23,7 +23,33 @@ export function useDocument(doctype, docname) {
             triggerOnSave()
             toast.success(__('Document updated successfully'))
           },
-          onError: (err) => {
+          onError: async (err) => {
+            // Check if it's a timestamp mismatch error
+            const isTimestampMismatch =
+              err.exc_type === 'TimestampMismatchError' ||
+              String(err.exc || err.message || '').includes('TimestampMismatchError') ||
+              String(err.exc || err.message || '').includes('Document has been modified')
+
+            if (isTimestampMismatch && docname) {
+              // Reload the document to get the latest version
+              try {
+                await documentsCache[doctype][docname].reload()
+                toast.warning(
+                  __(
+                    'Document was updated by another user. The page has been refreshed. Please try again.',
+                  ),
+                )
+              } catch (reloadErr) {
+                console.error('Failed to reload document:', reloadErr)
+                toast.error(
+                  __(
+                    'Document was modified by another user. Please refresh the page and try again.',
+                  ),
+                )
+              }
+              return
+            }
+
             let errorMessage = __('Error updating document')
             if (err.exc_type == 'MandatoryError') {
               const fieldName = err.messages

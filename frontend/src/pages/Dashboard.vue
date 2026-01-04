@@ -82,8 +82,8 @@
             updateFilter('period', v, () => {
               showDatePicker = false
               if (!v) {
-                filters.period = getLastXDays()
-                preset = 'Last 30 Days'
+                filters.period = null
+                preset = 'All Time'
               } else {
                 preset = formatter(v)
               }
@@ -96,15 +96,16 @@
         </template>
       </DateRangePicker>
       <Link
-        v-if="isAdmin() || isManager()"
+        v-if="isAdmin() || isManager() || isSalesUser()"
         class="form-control w-48"
         variant="outline"
         :value="filters.user && getUser(filters.user).full_name"
         doctype="User"
-        :filters="{ name: ['in', users.data.crmUsers?.map((u) => u.name)] }"
+        :filters="salesUserFilters"
         @change="(v) => updateFilter('user', v)"
         :placeholder="__('Sales user')"
         :hideMe="true"
+        :disabled="isSalesUser() && !isManager() && !isAdmin()"
       >
         <template #prefix>
           <UserAvatar
@@ -125,6 +126,14 @@
           </Tooltip>
         </template>
       </Link>
+      <Link
+        class="form-control w-48"
+        variant="outline"
+        :value="filters.project"
+        doctype="Real Estate Project"
+        @change="(v) => updateFilter('project', v)"
+        :placeholder="__('Project')"
+      />
     </div>
 
     <div class="w-full overflow-y-scroll">
@@ -154,6 +163,7 @@ import ViewBreadcrumbs from '@/components/ViewBreadcrumbs.vue'
 import LayoutHeader from '@/components/LayoutHeader.vue'
 import Link from '@/components/Controls/Link.vue'
 import { usersStore } from '@/stores/users'
+import { sessionStore } from '@/stores/session'
 import { copy } from '@/utils'
 import { getLastXDays, getToday, getYesterday, formatter, formatRange } from '@/utils/dashboard'
 import {
@@ -163,29 +173,74 @@ import {
   Dropdown,
   Tooltip,
 } from 'frappe-ui'
-import { ref, reactive, computed, provide } from 'vue'
+import { ref, reactive, computed, provide, watch } from 'vue'
 
-const { users, getUser, isManager, isAdmin } = usersStore()
+const { users, getUser, isManager, isAdmin, isSalesUser } = usersStore()
+const session = sessionStore()
 
 const editing = ref(false)
 
 const showDatePicker = ref(false)
 const datePickerRef = ref(null)
-const preset = ref('Last 30 Days')
+const preset = ref('All Time')
 const showAddChartModal = ref(false)
 
 const filters = reactive({
-  period: getLastXDays(),
+  period: null, // null means all time
   user: null,
+  project: null,
+})
+
+// For Sales User, set user filter to themselves by default
+watch(
+  () => users.data?.allUsers,
+  () => {
+    if (users.data?.allUsers) {
+      const currentUser = users.data.allUsers.find(u => u.name === session.user) || null
+      if (currentUser?.role === 'Sales User' && !filters.user) {
+        filters.user = session.user
+      }
+    }
+  },
+  { immediate: true }
+)
+
+// Get team members for Sales Manager
+const teamMembers = createResource({
+  url: 'crm.api.dashboard.get_all_crm_users',
+  auto: true,
+  transform: (data) => {
+    return Array.isArray(data) ? data : []
+  },
+})
+
+// Filter users based on role - Sales Manager sees only team, Sales User sees only themselves, others see all
+const salesUserFilters = computed(() => {
+  const crmUsers = users.data?.crmUsers || []
+  const currentUser = users.data?.allUsers?.find(u => u.name === session.user) || null
+  const isSalesManager = currentUser?.role === 'Sales Manager'
+  const isSalesUserRole = currentUser?.role === 'Sales User'
+  
+  if (isSalesManager) {
+    // Sales Manager: show only team members (from API)
+    const teamUserNames = (teamMembers.data || []).map(u => u.name)
+    return { name: ['in', teamUserNames] }
+  } else if (isSalesUserRole) {
+    // Sales User: show only themselves
+    return { name: session.user }
+  } else {
+    // Admin/System Manager: show all CRM users
+    return { name: ['in', crmUsers.map((u) => u.name)] }
+  }
 })
 
 const fromDate = computed(() => {
-  if (!filters.period) return null
+  if (!filters.period) return "" // Empty string means all time
   return filters.period.split(',')[0]
 })
 
 const toDate = computed(() => {
-  if (!filters.period) return null
+  if (!filters.period) return "" // Empty string means all time
   return filters.period.split(',')[1]
 })
 
@@ -200,6 +255,14 @@ const options = computed(() => [
     group: 'Presets',
     hideLabel: true,
     items: [
+      {
+        label: 'All Time',
+        onClick: () => {
+          preset.value = 'All Time'
+          filters.period = null
+          dashboardItems.reload()
+        },
+      },
       {
         label: 'Today',
         onClick: () => {
@@ -263,12 +326,14 @@ const options = computed(() => [
 
 const dashboardItems = createResource({
   url: 'crm.api.dashboard.get_dashboard',
-  cache: ['Analytics', 'ManagerDashboard'],
+  // Remove cache to ensure data updates when filters change
+  // cache: ['Analytics', 'ManagerDashboard'],
   makeParams() {
     return {
       from_date: fromDate.value,
       to_date: toDate.value,
       user: filters.user,
+      project: filters.project,
     }
   },
   auto: true,

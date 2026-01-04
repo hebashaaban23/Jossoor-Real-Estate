@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import today
 from crm.fcrm.doctype.crm_notification.crm_notification import notify_user
 
 
@@ -17,6 +18,16 @@ def after_insert(doc, method):
             frappe.db.set_value(
                 doc.reference_type, doc.reference_name, fieldname, doc.allocated_to
             )
+        
+        # Set assigned_date for CRM Lead when ToDo is created
+        if doc.reference_type == "CRM Lead" and doc.reference_name:
+            assigned_date = frappe.db.get_value(
+                "CRM Lead", doc.reference_name, "assigned_date"
+            )
+            if not assigned_date:
+                frappe.db.set_value(
+                    "CRM Lead", doc.reference_name, "assigned_date", today()
+                )
 
     if (
         doc.reference_type in ["CRM Lead", "CRM Deal", "CRM Task"]

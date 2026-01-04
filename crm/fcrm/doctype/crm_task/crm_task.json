@@ -14,19 +14,26 @@
   "start_date",
   "reference_doctype",
   "reference_docname",
+  "lead",
+  "project",
+  "unit",
+  "project_unit",
   "column_break_cqua",
   "assigned_to",
   "status",
   "due_date",
   "meeting_attendees",
   "section_break_bzhd",
-  "description"
+  "column_break_vmos",
+  "description",
+  "reminder_section",
+  "has_reminder"
  ],
  "fields": [
   {
    "fieldname": "title",
    "fieldtype": "Data",
-   "hidden": 1,
+   "in_list_view": 1,
    "label": "Title"
   },
   {
@@ -37,7 +44,7 @@
   },
   {
    "fieldname": "start_date",
-   "fieldtype": "Date",
+   "fieldtype": "Datetime",
    "label": "Start Date"
   },
   {
@@ -47,6 +54,7 @@
   {
    "fieldname": "assigned_to",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Assigned To",
    "options": "User"
   },
@@ -56,7 +64,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Backlog\nTodo\nIn Progress\nDone\nCanceled"
+   "options": "Todo\nBacklog\nIn Progress\nDone\nCanceled\nlate"
   },
   {
    "fieldname": "due_date",
@@ -70,6 +78,7 @@
   {
    "fieldname": "description",
    "fieldtype": "Text Editor",
+   "in_list_view": 1,
    "label": "Description"
   },
   {
@@ -86,6 +95,30 @@
    "options": "reference_doctype"
   },
   {
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "label": "Lead",
+   "options": "CRM Lead"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Real Estate Project"
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Link",
+   "label": "Unit",
+   "options": "Unit"
+  },
+  {
+   "fieldname": "project_unit",
+   "fieldtype": "Link",
+   "label": "Project Unit",
+   "options": "Project Unit"
+  },
+  {
    "fieldname": "meeting_attendees",
    "fieldtype": "Table MultiSelect",
    "label": "Meeting Attendees",
@@ -97,13 +130,28 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Task Type",
-   "options": "Meeting\nProperty Showing\nCall",
+   "options": "call\nproperty showing\nwhatsapp message\nteam meeting\nlead meeting\nother",
    "reqd": 1
+  },
+  {
+   "fieldname": "column_break_vmos",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reminder_section",
+   "fieldtype": "Section Break",
+   "label": "Reminder"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_reminder",
+   "fieldtype": "Check",
+   "label": "Has Reminder"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-13 17:01:10.070197",
+ "modified": "2026-01-01 11:42:56.762971",
  "modified_by": "Administrator",
  "module": "FCRM",
  "name": "CRM Task",
